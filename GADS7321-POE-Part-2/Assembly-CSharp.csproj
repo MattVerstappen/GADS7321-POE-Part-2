@@ -68,7 +68,6 @@
     <None Include="Library\PackageCache\com.unity.collab-proxy@2.3.1\package.json" />
     <None Include="Library\PackageCache\com.unity.textmeshpro@3.0.6\PackageConversionData.json" />
     <None Include="Library\PackageCache\com.unity.modules.unitywebrequestassetbundle@1.0.0\package.json" />
-    <None Include="Assets\BayatGames\Free Platform Game Assets\Readme.txt" />
     <None Include="Library\PackageCache\com.unity.ide.visualstudio@2.0.22\package.json" />
     <None Include="Library\PackageCache\com.unity.render-pipelines.core@14.0.10\ValidationConfig.json" />
     <None Include="Library\PackageCache\com.unity.render-pipelines.core@14.0.10\package.json" />
