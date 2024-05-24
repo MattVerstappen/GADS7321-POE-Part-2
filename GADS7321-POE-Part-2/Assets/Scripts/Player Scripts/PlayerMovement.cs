@@ -1,5 +1,5 @@
-using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -20,9 +20,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        Debug.Log("Update method executed");
-        HandleMovement();
+        CheckGrounded(); // Ensure grounded status is updated continuously
         HandleJumping();
+        HandleMovement();
         UpdateAnimations();
     }
 
@@ -35,23 +35,36 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleMovement()
     {
-        float horizontalInput = Input.GetAxis("Horizontal");
-        body.velocity = new Vector2(horizontalInput * speed, body.velocity.y);
+        Vector2 moveInput = GetMoveInput();
+        body.velocity = new Vector2(moveInput.x * speed, body.velocity.y);
+
         // Flip player when moving left and right
-        if (horizontalInput > 0.01f)
+        if (moveInput.x > 0.01f)
             transform.localScale = Vector3.one;
-        else if (horizontalInput < -0.01f)
+        else if (moveInput.x < -0.01f)
             transform.localScale = new Vector3(-1, 1, 1);
+    }
+
+    private Vector2 GetMoveInput()
+    {
+        return Keyboard.current == null ? Vector2.zero : new Vector2(
+            Keyboard.current.dKey.isPressed ? 1 : Keyboard.current.aKey.isPressed ? -1 : 0,
+            0
+        );
     }
 
     private void HandleJumping()
     {
-        CheckGrounded();
-
-        if (Input.GetButtonDown("Jump") && grounded)
+        if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame && grounded)
         {
             body.velocity = new Vector2(body.velocity.x, jumpSpeed);
         }
+    }
+
+    private void UpdateAnimations()
+    {
+        anim.SetBool("run", Mathf.Abs(body.velocity.x) > 0.01f);
+        anim.SetBool("grounded", grounded);
     }
 
     private void CheckGrounded()
@@ -60,10 +73,10 @@ public class PlayerMovement : MonoBehaviour
         grounded = Physics2D.OverlapCircle(position, groundCheckRadius, groundLayer);
     }
 
-
-    private void UpdateAnimations()
+    private void OnDrawGizmosSelected()
     {
-        anim.SetBool("run", Math.Abs(body.velocity.x) > 0.01f);
-        anim.SetBool("grounded", grounded);
+        Gizmos.color = Color.red;
+        Vector2 position = (Vector2)transform.position + groundCheckOffset;
+        Gizmos.DrawWireSphere(position, groundCheckRadius);
     }
 }
