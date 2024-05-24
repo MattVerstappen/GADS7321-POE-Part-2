@@ -12,7 +12,6 @@ public class QuestManager : MonoBehaviour
         if (!activeQuests.Contains(quest))
         {
             activeQuests.Add(quest);
-            // Optionally, update the quest UI to display the new quest
             UpdateQuestUI();
         }
     }
