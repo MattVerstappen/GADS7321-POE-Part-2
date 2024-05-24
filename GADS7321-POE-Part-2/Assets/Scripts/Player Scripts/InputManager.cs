@@ -9,6 +9,10 @@ public class InputManager : MonoBehaviour
     private PlayerControls controls;
 
     private static InputManager instance;
+    
+    private bool jumpPressed = false;
+    private bool interactPressed = false;
+    private bool submitPressed = false;
 
     private void Awake()
     {
@@ -34,7 +38,7 @@ public class InputManager : MonoBehaviour
         controls.Disable();
     }
 
-    private void InteractWithObjects()
+    public void InteractWithObjects()
     {
         Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, interactionRadius, interactableLayer);
 
@@ -47,6 +51,15 @@ public class InputManager : MonoBehaviour
                 Debug.Log("Interacted with: " + interactable.name);
             }
         }
+    }
+    
+    public bool GetInteractPressed() 
+    {
+        InteractWithObjects();
+        bool result = interactPressed;
+        interactPressed = false;
+        return result;
+        
     }
 
     public static InputManager GetInstance()
