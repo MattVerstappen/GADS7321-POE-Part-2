@@ -34,9 +34,9 @@ public class DialogueTrigger : MonoBehaviour
 
     private void InteractWithObjects()
     {
-        // Perform dialogue or interaction actions here
+        DialogueManager.GetInstance().EnterDialogueMode(inkJSON);
         Debug.Log("Interacted with object: " + gameObject.name);
-        Debug.Log(inkJSON.text); // Move this inside the interaction logic
+        Debug.Log(inkJSON.text);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
