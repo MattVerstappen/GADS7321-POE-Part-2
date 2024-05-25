@@ -21,14 +21,24 @@ public class DialogueTrigger : MonoBehaviour
         if (playerInRange)
         {
             visualCue.SetActive(true);
-            InputManager.GetInstance().InteractWithObjects();
-            Debug.Log(inkJSON.text);
+            if (InputManager.GetInstance().GetInteractPressed())
+            {
+                InteractWithObjects();
+            }
         }
         else
         {
             visualCue.SetActive(false);
         }
     }
+
+    private void InteractWithObjects()
+    {
+        // Perform dialogue or interaction actions here
+        Debug.Log("Interacted with object: " + gameObject.name);
+        Debug.Log(inkJSON.text); // Move this inside the interaction logic
+    }
+
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Player"))

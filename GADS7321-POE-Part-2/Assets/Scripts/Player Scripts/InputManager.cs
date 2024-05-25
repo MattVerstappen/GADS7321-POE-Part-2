@@ -9,10 +9,8 @@ public class InputManager : MonoBehaviour
     private PlayerControls controls;
 
     private static InputManager instance;
-    
-    private bool jumpPressed = false;
+
     private bool interactPressed = false;
-    private bool submitPressed = false;
 
     private void Awake()
     {
@@ -25,7 +23,7 @@ public class InputManager : MonoBehaviour
         controls = new PlayerControls();
 
         // Subscribe to interaction input action
-        controls.game.interact.performed += _ => InteractWithObjects();
+        controls.game.interact.performed += _ => interactPressed = true;
     }
 
     private void OnEnable()
@@ -52,14 +50,12 @@ public class InputManager : MonoBehaviour
             }
         }
     }
-    
-    public bool GetInteractPressed() 
+
+    public bool GetInteractPressed()
     {
-        InteractWithObjects();
         bool result = interactPressed;
         interactPressed = false;
         return result;
-        
     }
 
     public static InputManager GetInstance()
