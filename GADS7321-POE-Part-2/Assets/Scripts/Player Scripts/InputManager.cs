@@ -25,7 +25,7 @@ public class InputManager : MonoBehaviour
 
         // Subscribe to interaction input action
         controls.game.interact.performed += _ => interactPressed = true;
-        controls.game.submit.performed += SubmitPressed;
+        controls.game.submit.performed += context => SubmitPressed(context);
     }
 
     private void OnEnable()
@@ -58,11 +58,13 @@ public class InputManager : MonoBehaviour
         if (context.performed)
         {
             submitPressed = true;
+            Debug.Log("Submit button pressed");
         }
         else if (context.canceled)
         {
             submitPressed = false;
-        } 
+            Debug.Log("Submit button released");
+        }
     }
 
     public bool GetInteractPressed()
@@ -77,6 +79,11 @@ public class InputManager : MonoBehaviour
         bool result = submitPressed;
         submitPressed = false;
         return result;
+    }
+    
+    public void RegisterSubmitPressed()
+    {
+        submitPressed = false;
     }
 
     public static InputManager GetInstance()

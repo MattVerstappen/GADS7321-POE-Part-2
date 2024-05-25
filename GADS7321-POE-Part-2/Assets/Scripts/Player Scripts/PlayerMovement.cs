@@ -18,11 +18,15 @@ public class PlayerMovement : MonoBehaviour
         groundCheckOffset = new Vector2(0, -GetComponent<Collider2D>().bounds.extents.y - 0.1f);
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
-        CheckGrounded(); // Ensure grounded status is updated continuously
-        HandleJumping();
+        if (DialogueManager.GetInstance().IsDialoguePlaying())
+        {
+            return;
+        }
+        CheckGrounded();
         HandleMovement();
+        HandleJumping();
         UpdateAnimations();
     }
 

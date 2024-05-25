@@ -1,4 +1,5 @@
 using UnityEngine;
+using Ink.Runtime;
 
 public class DialogueTrigger : MonoBehaviour
 {
@@ -9,6 +10,7 @@ public class DialogueTrigger : MonoBehaviour
     [SerializeField] private TextAsset inkJSON;
 
     private bool playerInRange;
+    private Story currentStory;
 
     private void Awake()
     {
@@ -18,25 +20,18 @@ public class DialogueTrigger : MonoBehaviour
 
     private void Update()
     {
-        if (playerInRange)
+        if (playerInRange && !DialogueManager.GetInstance().dialogueIsPlaying)
         {
             visualCue.SetActive(true);
             if (InputManager.GetInstance().GetInteractPressed())
             {
-                InteractWithObjects();
+                DialogueManager.GetInstance().EnterDialogueMode(inkJSON);
             }
         }
         else
         {
             visualCue.SetActive(false);
         }
-    }
-
-    private void InteractWithObjects()
-    {
-        DialogueManager.GetInstance().EnterDialogueMode(inkJSON);
-        Debug.Log("Interacted with object: " + gameObject.name);
-        Debug.Log(inkJSON.text);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
