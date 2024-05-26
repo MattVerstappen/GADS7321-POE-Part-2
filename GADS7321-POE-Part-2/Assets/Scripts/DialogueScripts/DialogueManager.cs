@@ -10,7 +10,10 @@ public class DialogueManager : MonoBehaviour
     [Header("Dialogue UI")]
     [SerializeField] private GameObject dialoguePanel;
     [SerializeField] private TextMeshProUGUI dialogueText;
-
+    [SerializeField] private TextMeshProUGUI displayNameText;
+    [SerializeField] private Animator portraitAnimation;
+    private Animator layoutSwitch;
+    
     [Header("Response UI")]
     [SerializeField] private GameObject[] choices;
     private TextMeshProUGUI[] choiceText;
@@ -21,7 +24,9 @@ public class DialogueManager : MonoBehaviour
     private bool canContinueToNextLine = false;
 
     public static DialogueManager instance { get; private set; }
-
+    private const string SPEAKERTAG = "speaker";
+    private const string SPEAKERPORTRAIT = "portrait";
+    private const string SPEAKERLAYOUT = "layout";
     private void Awake()
     {
         if (instance != null)
@@ -40,6 +45,8 @@ public class DialogueManager : MonoBehaviour
     {
         dialoguePanel.SetActive(false);
 
+        layoutSwitch = dialoguePanel.GetComponent<Animator>();
+        
         choiceText = new TextMeshProUGUI[choices.Length];
         for (int i = 0; i < choices.Length; i++)
         {
@@ -84,6 +91,7 @@ public class DialogueManager : MonoBehaviour
             {
                 dialogueText.text = currentStory.Continue();
                 DisplayResponses();
+                HandleTags(currentStory.currentTags);
             }
             else
             {
@@ -91,6 +99,40 @@ public class DialogueManager : MonoBehaviour
                 {
                     StartCoroutine(ExitDialogueMode());
                 }
+            }
+        }
+    }
+
+    private void HandleTags(List<string> currentTags)
+    {
+        foreach (string tag in currentTags)
+        {
+            string[] splitTag = tag.Split(':');
+            if (splitTag.Length != 2)
+            {
+                Debug.Log("WUPSIES could not sort this out mate... No Bueno..." + tag);
+            }
+
+            string keyTag = splitTag[0].Trim();
+            string valueOfTag = splitTag[1].Trim();
+
+            switch (keyTag)
+            {
+                case SPEAKERTAG:
+                    displayNameText.text = valueOfTag;
+                    Debug.Log("Speaker is = " + valueOfTag);
+                    break;
+                case SPEAKERPORTRAIT:
+                    portraitAnimation.Play(valueOfTag);
+                    Debug.Log("Speaker portrait is = " + valueOfTag);
+                    break;
+                case SPEAKERLAYOUT:
+                    layoutSwitch.Play(valueOfTag);
+                    Debug.Log("Speaker layout is = " + valueOfTag);
+                    break;
+                default:
+                    Debug.Log("You didn't set up the narrative script properly you moron." + tag);
+                    break;
             }
         }
     }
