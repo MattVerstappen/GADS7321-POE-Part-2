@@ -38,7 +38,7 @@ public class InputManager : MonoBehaviour
         controls.Disable();
     }
 
-    public void InteractWithObjects()
+    /*public void InteractWithObjects()
     {
         Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, interactionRadius, interactableLayer);
 
@@ -51,7 +51,7 @@ public class InputManager : MonoBehaviour
                 Debug.Log("Interacted with: " + interactable.name);
             }
         }
-    }
+    }*/
 
     public void SubmitPressed(InputAction.CallbackContext context)
     {

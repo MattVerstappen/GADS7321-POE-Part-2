@@ -7,11 +7,15 @@ using UnityEngine.EventSystems;
 
 public class DialogueManager : MonoBehaviour
 {
+    [Header("Tweaks")] 
+    [SerializeField] private float displaySpeed = 0.02f;
+    
     [Header("Dialogue UI")]
     [SerializeField] private GameObject dialoguePanel;
     [SerializeField] private TextMeshProUGUI dialogueText;
     [SerializeField] private TextMeshProUGUI displayNameText;
     [SerializeField] private Animator portraitAnimation;
+    [SerializeField] private GameObject continueIndicator;
     private Animator layoutSwitch;
     
     [Header("Response UI")]
@@ -24,6 +28,7 @@ public class DialogueManager : MonoBehaviour
     private bool canContinueToNextLine = false;
 
     public static DialogueManager instance { get; private set; }
+    private Coroutine typeLineOutCoroutine;
     private const string SPEAKERTAG = "speaker";
     private const string SPEAKERPORTRAIT = "portrait";
     private const string SPEAKERLAYOUT = "layout";
@@ -57,12 +62,14 @@ public class DialogueManager : MonoBehaviour
 
     private void Update()
     {
-        if (dialogueIsPlaying && InputManager.GetInstance().GetSubmitPressed())
+        if (!dialogueIsPlaying)
         {
-            // Process the submit action (e.g., advance the dialogue)
+            return;
+        }
+        
+        if (canContinueToNextLine && dialogueIsPlaying && InputManager.GetInstance().GetSubmitPressed())
+        {
             ContinueDialogue();
-
-            // Reset the submit pressed flag
             InputManager.GetInstance().RegisterSubmitPressed();
         }
     }
@@ -94,8 +101,13 @@ public class DialogueManager : MonoBehaviour
         {
             if (currentStory.canContinue)
             {
-                dialogueText.text = currentStory.Continue();
-                DisplayResponses();
+                if (typeLineOutCoroutine != null)
+                {
+                    StopCoroutine(typeLineOutCoroutine);
+                }
+                typeLineOutCoroutine = StartCoroutine(TypeDisplayLine(currentStory.Continue()));
+                //dialogueText.text = currentStory.Continue();
+
                 HandleTags(currentStory.currentTags);
             }
             else
@@ -106,6 +118,41 @@ public class DialogueManager : MonoBehaviour
                 }
             }
         }
+    }
+
+    private IEnumerator TypeDisplayLine(string line)
+    {
+        dialogueText.text = "";
+        continueIndicator.SetActive(false);
+        HideChoicesAtStart();
+        canContinueToNextLine = false;
+        bool hasStyleApplied = false;
+        foreach (char letter in line.ToCharArray())
+        {
+            if (InputManager.GetInstance().GetSubmitPressed())
+            {
+                dialogueText.text = line;
+                break;
+            }
+
+            if (letter == '<' || hasStyleApplied)
+            {
+                hasStyleApplied = true;
+                dialogueText.text += letter;
+                if (letter == '>')
+                {
+                    hasStyleApplied = false;
+                }
+            }
+            else
+            {
+                dialogueText.text += letter;
+                yield return new WaitForSeconds(displaySpeed);
+            }
+        }
+        continueIndicator.SetActive(false);
+        DisplayResponses();
+        canContinueToNextLine = true;
     }
 
     private void HandleTags(List<string> currentTags)
@@ -161,6 +208,14 @@ public class DialogueManager : MonoBehaviour
 
         StartCoroutine(SelectFirstChoice());
     }
+    
+    private void HideChoicesAtStart()
+    {
+        foreach (GameObject currentChoices in choices)
+        {
+            currentChoices.SetActive(false);
+        }
+    }
 
     private IEnumerator SelectFirstChoice()
     {
@@ -172,8 +227,11 @@ public class DialogueManager : MonoBehaviour
 
     public void MakeDecision(int choiceIndex)
     {
-        currentStory.ChooseChoiceIndex(choiceIndex);
-        responseSelected = true;
+        if (canContinueToNextLine)
+        {
+            currentStory.ChooseChoiceIndex(choiceIndex);
+            responseSelected = true;
+        }
     }
 
     private void CloseDialogue()
