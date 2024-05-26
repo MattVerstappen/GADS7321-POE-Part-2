@@ -2056,10 +2056,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 830f27383efcd99489618e6e6148ae61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  displaySpeed: 0.02
+  variableTrackerFile:
+    inkAsset: {fileID: 102900000, guid: a7abdf7eb7870fd49b0c942a18e07995, type: 3}
+    jsonAssetDirectory: {fileID: 0}
+    jsonAsset: {fileID: 0}
+    unhandledCompileErrors: []
+    recursiveIncludeErrorPaths: []
+    errors: []
+    warnings: []
+    todos: []
+    masterInkAssets: []
+    localIncludePaths: []
+    includes: []
   dialoguePanel: {fileID: 246728588}
   dialogueText: {fileID: 313861430}
   displayNameText: {fileID: 595324352}
   portraitAnimation: {fileID: 1749450747}
+  continueIndicator: {fileID: 1451690576}
   choices:
   - {fileID: 1069642773}
   - {fileID: 2013484148}

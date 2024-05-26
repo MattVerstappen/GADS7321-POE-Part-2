@@ -1,5 +1,8 @@
+INCLUDE globalVariableTracker.ink
+
+{lastSelectedChoice == "": -> main | -> NPCHasBeenSpokenTo}
 UH OH someone new... #speaker: Test NPC #portrait: mr_green_neutral #layout:left
--> main
+
 ===main===
 <color=\#F8FF30>Welcome</color> to the decision tree, make your Choice! #portrait: mr_green_happy #layout:right
     +[Wubba Lubba Dub Dub]
@@ -9,6 +12,10 @@ UH OH someone new... #speaker: Test NPC #portrait: mr_green_neutral #layout:left
     +[What is my purpose?]
         -> chosen("You pass me the butter, now experience exisitential dread")
 === chosen(response) ===
+~ lastSelectedChoice = response
 {response}
 -> END
-    
+
+=== NPCHasBeenSpokenTo ===
+Oh hey you again remember: {lastSelectedChoice}! #speaker: Test NPC #portrait: mr_green_happy #layout:left
+-> END

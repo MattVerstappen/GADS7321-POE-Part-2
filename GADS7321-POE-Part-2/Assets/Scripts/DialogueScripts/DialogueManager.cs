@@ -4,11 +4,15 @@ using Ink.Runtime;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.EventSystems;
+using Ink.UnityIntegration;
 
 public class DialogueManager : MonoBehaviour
 {
     [Header("Tweaks")] 
     [SerializeField] private float displaySpeed = 0.02f;
+
+    [Header("Global Variable tracker")] 
+    [SerializeField] private InkFile variableTrackerFile;
     
     [Header("Dialogue UI")]
     [SerializeField] private GameObject dialoguePanel;
@@ -32,6 +36,8 @@ public class DialogueManager : MonoBehaviour
     private const string SPEAKERTAG = "speaker";
     private const string SPEAKERPORTRAIT = "portrait";
     private const string SPEAKERLAYOUT = "layout";
+
+    private DialogueVariableTracker dialogueVariableTracker;
     private void Awake()
     {
         if (instance != null)
@@ -39,6 +45,7 @@ public class DialogueManager : MonoBehaviour
             Debug.LogWarning("Found more than one Dialogue Manager in the scene.");
         }
         instance = this;
+        dialogueVariableTracker = new DialogueVariableTracker(variableTrackerFile.filePath);
     }
 
     public static DialogueManager GetInstance()
@@ -81,6 +88,7 @@ public class DialogueManager : MonoBehaviour
             currentStory = new Story(inkJson.text);
             dialogueIsPlaying = true;
             dialoguePanel.SetActive(true);
+            dialogueVariableTracker.ListenAtStart(currentStory);
 
             displayNameText.text = "???";
             portraitAnimation.Play("DefaultAnimation");
@@ -246,6 +254,7 @@ public class DialogueManager : MonoBehaviour
     private IEnumerator ExitDialogueMode() 
     {
         yield return new WaitForSeconds(0.2f);
+        dialogueVariableTracker.ListeningEnd(currentStory);
         CloseDialogue();
     }
 }
