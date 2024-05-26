@@ -74,6 +74,11 @@ public class DialogueManager : MonoBehaviour
             currentStory = new Story(inkJson.text);
             dialogueIsPlaying = true;
             dialoguePanel.SetActive(true);
+
+            displayNameText.text = "???";
+            portraitAnimation.Play("DefaultAnimation");
+            layoutSwitch.Play("SpeakerRight");
+            
             ContinueDialogue();
         }
     }
