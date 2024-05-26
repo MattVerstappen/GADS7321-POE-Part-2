@@ -1,21 +1,23 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Ink.Runtime;
-using System.IO;
-using Ink;
 using Object = Ink.Runtime.Object;
 
 public class DialogueVariableTracker
 {
-    private Dictionary<string, Ink.Runtime.Object> variables;
-
-    public DialogueVariableTracker(string filePathFinder)
+    private Dictionary<string, Object> variables;
+    private Story globalVariablesInStory;
+    private const string saveCurrentVariablesKey = "INK_VARIABLES_STATE";
+    public DialogueVariableTracker(TextAsset loadGlobalsFromJSON)
     {
-        string inkFileContents = File.ReadAllText(filePathFinder);
-        Compiler recompiler = new Compiler(inkFileContents);
-        Story globalVariablesInStory = recompiler.Compile();
+        globalVariablesInStory = new Story(loadGlobalsFromJSON.text);
 
+        if (PlayerPrefs.HasKey(saveCurrentVariablesKey))
+        {
+            string jsonState = PlayerPrefs.GetString(saveCurrentVariablesKey);
+            globalVariablesInStory.state.LoadJson(jsonState);
+        }
+        
         variables = new Dictionary<string, Object>();
         foreach (string name in globalVariablesInStory.variablesState)
         {
@@ -29,7 +31,6 @@ public class DialogueVariableTracker
         StoryVariables(story);
         story.variablesState.variableChangedEvent += hasVariableChanged;
     }
-
     public void ListeningEnd(Story story)
     {
         story.variablesState.variableChangedEvent -= hasVariableChanged;
@@ -43,12 +44,21 @@ public class DialogueVariableTracker
             variables.Add(name, value);
         }
     }
-
     private void StoryVariables(Story story)
     {
         foreach (KeyValuePair<string, Object> variable in variables)
         {
             story.variablesState.SetGlobal(variable.Key, variable.Value);
+        }
+    }
+
+    public void SaveVariables()
+    {
+        if (globalVariablesInStory != null)
+        {
+            StoryVariables(globalVariablesInStory);
+            //Note To self this will work in conjunction with a save and load method later on.
+            PlayerPrefs.SetString(saveCurrentVariablesKey, globalVariablesInStory.state.ToJson());
         }
     }
 }

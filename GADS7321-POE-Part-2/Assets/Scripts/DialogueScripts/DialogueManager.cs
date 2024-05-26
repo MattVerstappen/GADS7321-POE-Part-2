@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using Ink.Runtime;
@@ -11,8 +12,8 @@ public class DialogueManager : MonoBehaviour
     [Header("Tweaks")] 
     [SerializeField] private float displaySpeed = 0.02f;
 
-    [Header("Global Variable tracker")] 
-    [SerializeField] private InkFile variableTrackerFile;
+    [Header("Global Variable Loader")] 
+    [SerializeField] private TextAsset loadGlobalsFromJSON;
     
     [Header("Dialogue UI")]
     [SerializeField] private GameObject dialoguePanel;
@@ -45,14 +46,12 @@ public class DialogueManager : MonoBehaviour
             Debug.LogWarning("Found more than one Dialogue Manager in the scene.");
         }
         instance = this;
-        dialogueVariableTracker = new DialogueVariableTracker(variableTrackerFile.filePath);
+        dialogueVariableTracker = new DialogueVariableTracker(loadGlobalsFromJSON);
     }
-
     public static DialogueManager GetInstance()
     {
         return instance;
     }
-
     private void Start()
     {
         dialoguePanel.SetActive(false);
@@ -66,7 +65,6 @@ public class DialogueManager : MonoBehaviour
             choices[i].SetActive(false);
         }
     }
-
     private void Update()
     {
         if (!dialogueIsPlaying)
@@ -74,7 +72,7 @@ public class DialogueManager : MonoBehaviour
             return;
         }
         
-        if (canContinueToNextLine && dialogueIsPlaying && InputManager.GetInstance().GetSubmitPressed())
+        if (currentStory.currentChoices.Count == 0 && InputManager.GetInstance().GetSubmitPressed())
         {
             ContinueDialogue();
             InputManager.GetInstance().RegisterSubmitPressed();
@@ -97,12 +95,10 @@ public class DialogueManager : MonoBehaviour
             ContinueDialogue();
         }
     }
-
     public bool IsDialoguePlaying()
     {
         return dialogueIsPlaying;
     }
-    
     public void ContinueDialogue()
     {
         if (currentStory != null && dialogueIsPlaying)
@@ -127,10 +123,10 @@ public class DialogueManager : MonoBehaviour
             }
         }
     }
-
     private IEnumerator TypeDisplayLine(string line)
     {
-        dialogueText.text = "";
+        dialogueText.text = line;
+        dialogueText.maxVisibleCharacters = 0;
         continueIndicator.SetActive(false);
         HideChoicesAtStart();
         canContinueToNextLine = false;
@@ -139,14 +135,13 @@ public class DialogueManager : MonoBehaviour
         {
             if (InputManager.GetInstance().GetSubmitPressed())
             {
-                dialogueText.text = line;
+                dialogueText.maxVisibleCharacters = line.Length;
                 break;
             }
 
             if (letter == '<' || hasStyleApplied)
             {
                 hasStyleApplied = true;
-                dialogueText.text += letter;
                 if (letter == '>')
                 {
                     hasStyleApplied = false;
@@ -154,7 +149,7 @@ public class DialogueManager : MonoBehaviour
             }
             else
             {
-                dialogueText.text += letter;
+                dialogueText.maxVisibleCharacters++;
                 yield return new WaitForSeconds(displaySpeed);
             }
         }
@@ -162,7 +157,6 @@ public class DialogueManager : MonoBehaviour
         DisplayResponses();
         canContinueToNextLine = true;
     }
-
     private void HandleTags(List<string> currentTags)
     {
         foreach (string tag in currentTags)
@@ -196,7 +190,6 @@ public class DialogueManager : MonoBehaviour
             }
         }
     }
-
     private void DisplayResponses()
     {
         List<Choice> currentChoices = currentStory.currentChoices;
@@ -213,10 +206,8 @@ public class DialogueManager : MonoBehaviour
                 choices[i].SetActive(false);
             }
         }
-
         StartCoroutine(SelectFirstChoice());
     }
-    
     private void HideChoicesAtStart()
     {
         foreach (GameObject currentChoices in choices)
@@ -224,7 +215,6 @@ public class DialogueManager : MonoBehaviour
             currentChoices.SetActive(false);
         }
     }
-
     private IEnumerator SelectFirstChoice()
     {
         yield return null;
@@ -238,10 +228,11 @@ public class DialogueManager : MonoBehaviour
         if (canContinueToNextLine)
         {
             currentStory.ChooseChoiceIndex(choiceIndex);
-            responseSelected = true;
+            InputManager.GetInstance().RegisterSubmitPressed();
+            ContinueDialogue();
+            //responseSelected = true;
         }
     }
-
     private void CloseDialogue()
     {
         dialogueIsPlaying = false;
@@ -250,11 +241,18 @@ public class DialogueManager : MonoBehaviour
         currentStory = null;
         responseSelected = false; // Reset response selection flag
     }
-    
     private IEnumerator ExitDialogueMode() 
     {
         yield return new WaitForSeconds(0.2f);
         dialogueVariableTracker.ListeningEnd(currentStory);
         CloseDialogue();
+    }
+
+    public void OnApplicationQuit()
+    {
+        if (dialogueVariableTracker != null)
+        {
+            dialogueVariableTracker.SaveVariables();
+        }
     }
 }
