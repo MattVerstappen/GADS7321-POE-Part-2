@@ -6,45 +6,47 @@ public class DialogueTrigger : MonoBehaviour
     [Header("Visual Cue")]
     [SerializeField] private GameObject visualCue;
 
-    [Header("INK JSON")]
+    [Header("Emote Animator")]
+    [SerializeField] private Animator emoteAnimator;
+
+    [Header("Ink JSON")]
     [SerializeField] private TextAsset inkJSON;
 
     private bool playerInRange;
-    private Story currentStory;
 
-    private void Awake()
+    private void Awake() 
     {
         playerInRange = false;
         visualCue.SetActive(false);
     }
 
-    private void Update()
+    private void Update() 
     {
-        if (playerInRange && !DialogueManager.GetInstance().dialogueIsPlaying)
+        if (playerInRange && !DialogueManager.GetInstance().dialogueIsPlaying) 
         {
             visualCue.SetActive(true);
-            if (InputManager.GetInstance().GetInteractPressed())
+            if (InputManager.GetInstance().GetInteractPressed()) 
             {
-                DialogueManager.GetInstance().EnterDialogueMode(inkJSON);
+                DialogueManager.GetInstance().EnterDialogueMode(inkJSON, emoteAnimator);
             }
         }
-        else
+        else 
         {
             visualCue.SetActive(false);
         }
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    private void OnTriggerEnter2D(Collider2D collider) 
     {
-        if (other.CompareTag("Player"))
+        if (collider.gameObject.tag == "Player")
         {
             playerInRange = true;
         }
     }
 
-    private void OnTriggerExit2D(Collider2D other)
+    private void OnTriggerExit2D(Collider2D collider) 
     {
-        if (other.CompareTag("Player"))
+        if (collider.gameObject.tag == "Player")
         {
             playerInRange = false;
         }

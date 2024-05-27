@@ -3,84 +3,76 @@ using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
-    [SerializeField] private float speed = 5f;
-    [SerializeField] private float jumpSpeed = 10f;
-    [SerializeField] private LayerMask groundLayer;
-    private Rigidbody2D body;
-    private Animator anim;
-    private bool grounded;
-    private float groundCheckRadius = 0.5f;
-    private Vector2 groundCheckOffset;
+    [Header("Movement Params")]
+    public float runSpeed = 6.0f;
+    public float jumpSpeed = 8.0f;
+    public float gravityScale = 20.0f;
+
+    // components attached to player
+    private BoxCollider2D coll;
+    private Rigidbody2D rb;
+
+    // other
+    private bool isGrounded = false;
 
     private void Awake()
     {
-        InitializeComponents();
-        groundCheckOffset = new Vector2(0, -GetComponent<Collider2D>().bounds.extents.y - 0.1f);
+        coll = GetComponent<BoxCollider2D>();
+        rb = GetComponent<Rigidbody2D>();
+
+        rb.gravityScale = gravityScale;
     }
 
     private void FixedUpdate()
     {
-        if (DialogueManager.GetInstance().IsDialoguePlaying())
+        if (DialogueManager.GetInstance().dialogueIsPlaying)
         {
             return;
         }
-        CheckGrounded();
-        HandleMovement();
+
+        UpdateIsGrounded();
+
+        HandleHorizontalMovement();
+
         HandleJumping();
-        UpdateAnimations();
     }
 
-    private void InitializeComponents()
+    private void UpdateIsGrounded()
     {
-        body = GetComponent<Rigidbody2D>();
-        anim = GetComponent<Animator>();
-        Debug.Log("Components Initialized");
+        Bounds colliderBounds = coll.bounds;
+        float colliderRadius = coll.size.x * 0.4f * Mathf.Abs(transform.localScale.x);
+        Vector3 groundCheckPos = colliderBounds.min + new Vector3(colliderBounds.size.x * 0.5f, colliderRadius * 0.9f, 0);
+        // Check if player is grounded
+        Collider2D[] colliders = Physics2D.OverlapCircleAll(groundCheckPos, colliderRadius);
+        // Check if any of the overlapping colliders are not player collider, if so, set isGrounded to true
+        this.isGrounded = false;
+        if (colliders.Length > 0)
+        {
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                if (colliders[i] != coll)
+                {
+                    this.isGrounded = true;
+                    break;
+                }
+            }
+        }
     }
 
-    private void HandleMovement()
+    private void HandleHorizontalMovement()
     {
-        Vector2 moveInput = GetMoveInput();
-        body.velocity = new Vector2(moveInput.x * speed, body.velocity.y);
-
-        // Flip player when moving left and right
-        if (moveInput.x > 0.01f)
-            transform.localScale = Vector3.one;
-        else if (moveInput.x < -0.01f)
-            transform.localScale = new Vector3(-1, 1, 1);
-    }
-
-    private Vector2 GetMoveInput()
-    {
-        return Keyboard.current == null ? Vector2.zero : new Vector2(
-            Keyboard.current.dKey.isPressed ? 1 : Keyboard.current.aKey.isPressed ? -1 : 0,
-            0
-        );
+        Vector2 moveDirection = InputManager.GetInstance().GetMoveDirection();
+        rb.velocity = new Vector2(moveDirection.x * runSpeed, rb.velocity.y);
     }
 
     private void HandleJumping()
     {
-        if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame && grounded)
+        bool jumpPressed = InputManager.GetInstance().GetJumpPressed();
+        if (isGrounded && jumpPressed)
         {
-            body.velocity = new Vector2(body.velocity.x, jumpSpeed);
+            isGrounded = false;
+            rb.velocity = new Vector2(rb.velocity.x, jumpSpeed);
         }
     }
 
-    private void UpdateAnimations()
-    {
-        anim.SetBool("run", Mathf.Abs(body.velocity.x) > 0.01f);
-        anim.SetBool("grounded", grounded);
-    }
-
-    private void CheckGrounded()
-    {
-        Vector2 position = (Vector2)transform.position + groundCheckOffset;
-        grounded = Physics2D.OverlapCircle(position, groundCheckRadius, groundLayer);
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.red;
-        Vector2 position = (Vector2)transform.position + groundCheckOffset;
-        Gizmos.DrawWireSphere(position, groundCheckRadius);
-    }
 }

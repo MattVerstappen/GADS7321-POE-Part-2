@@ -1,258 +1,418 @@
-using System;
 using TMPro;
 using UnityEngine;
 using Ink.Runtime;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.EventSystems;
-using Ink.UnityIntegration;
-
+using System;
 public class DialogueManager : MonoBehaviour
 {
-    [Header("Tweaks")] 
-    [SerializeField] private float displaySpeed = 0.02f;
+    [Header("Typing Speed Set up")]
+    [SerializeField] private float typingSpeed = 0.04f;
 
-    [Header("Global Variable Loader")] 
-    [SerializeField] private TextAsset loadGlobalsFromJSON;
-    
-    [Header("Dialogue UI")]
+    [Header("Load Globals JSON file")]
+    [SerializeField] private TextAsset loadGlobalsJSON;
+
+    [Header("Dialogue UI Managmenet")]
     [SerializeField] private GameObject dialoguePanel;
+    [SerializeField] private GameObject continueIcon;
     [SerializeField] private TextMeshProUGUI dialogueText;
     [SerializeField] private TextMeshProUGUI displayNameText;
-    [SerializeField] private Animator portraitAnimation;
-    [SerializeField] private GameObject continueIndicator;
-    private Animator layoutSwitch;
-    
-    [Header("Response UI")]
+    [SerializeField] private Animator portraitAnimator;
+    private Animator layoutAnimator;
+
+    [Header("Choices UI Managment")]
     [SerializeField] private GameObject[] choices;
-    private TextMeshProUGUI[] choiceText;
+    private TextMeshProUGUI[] choicesText;
+
+    [Header("Audio Managment")]
+    [SerializeField] private DialogueAudioInfoSO defaultAudioInfo;
+    [SerializeField] private DialogueAudioInfoSO[] audioInfos;
+    [SerializeField] private bool makePredictable;
+    private DialogueAudioInfoSO currentAudioInfo;
+    private Dictionary<string, DialogueAudioInfoSO> audioInfoDictionary;
+    private AudioSource audioSource;
 
     private Story currentStory;
-    public bool dialogueIsPlaying { get; private set; } = false;
-    private bool responseSelected = false;
+    public bool dialogueIsPlaying { get; private set; }
+
     private bool canContinueToNextLine = false;
 
-    public static DialogueManager instance { get; private set; }
-    private Coroutine typeLineOutCoroutine;
-    private const string SPEAKERTAG = "speaker";
-    private const string SPEAKERPORTRAIT = "portrait";
-    private const string SPEAKERLAYOUT = "layout";
+    private Coroutine displayLineCoroutine;
 
-    private DialogueVariableTracker dialogueVariableTracker;
-    private void Awake()
+    private static DialogueManager instance;
+
+    private const string SPEAKER_TAG = "speaker";
+    private const string PORTRAIT_TAG = "portrait";
+    private const string LAYOUT_TAG = "layout";
+    private const string AUDIO_TAG = "audio";
+
+    private DialogueVariableTracker dialogueVariables;
+    private InkExternalFunctions inkExternalFunctions;
+
+
+    private void Awake() 
     {
         if (instance != null)
         {
-            Debug.LogWarning("Found more than one Dialogue Manager in the scene.");
+            Debug.LogWarning("Found more than one Dialogue Manager in the scene");
         }
         instance = this;
-        dialogueVariableTracker = new DialogueVariableTracker(loadGlobalsFromJSON);
+
+        dialogueVariables = new DialogueVariableTracker(loadGlobalsJSON);
+        inkExternalFunctions = new InkExternalFunctions();
+
+        audioSource = this.gameObject.AddComponent<AudioSource>();
+        currentAudioInfo = defaultAudioInfo;
     }
-    public static DialogueManager GetInstance()
+
+    public static DialogueManager GetInstance() 
     {
         return instance;
     }
-    private void Start()
+
+    private void Start() 
     {
+        dialogueIsPlaying = false;
         dialoguePanel.SetActive(false);
 
-        layoutSwitch = dialoguePanel.GetComponent<Animator>();
-        
-        choiceText = new TextMeshProUGUI[choices.Length];
-        for (int i = 0; i < choices.Length; i++)
+        // get the layout animator
+        layoutAnimator = dialoguePanel.GetComponent<Animator>();
+
+        // get all of the choices text 
+        choicesText = new TextMeshProUGUI[choices.Length];
+        int index = 0;
+        foreach (GameObject choice in choices) 
         {
-            choiceText[i] = choices[i].GetComponentInChildren<TextMeshProUGUI>();
-            choices[i].SetActive(false);
+            choicesText[index] = choice.GetComponentInChildren<TextMeshProUGUI>();
+            index++;
+        }
+
+        InitializeAudioInfoDictionary();
+    }
+
+    private void InitializeAudioInfoDictionary() 
+    {
+        audioInfoDictionary = new Dictionary<string, DialogueAudioInfoSO>();
+        audioInfoDictionary.Add(defaultAudioInfo.id, defaultAudioInfo);
+        foreach (DialogueAudioInfoSO audioInfo in audioInfos) 
+        {
+            audioInfoDictionary.Add(audioInfo.id, audioInfo);
         }
     }
-    private void Update()
+
+    private void SetCurrentAudioInfo(string id) 
     {
-        if (!dialogueIsPlaying)
+        DialogueAudioInfoSO audioInfo = null;
+        audioInfoDictionary.TryGetValue(id, out audioInfo);
+        if (audioInfo != null) 
+        {
+            this.currentAudioInfo = audioInfo;
+        }
+        else 
+        {
+            Debug.LogWarning("Failed to find audio info for id: " + id);
+        }
+    }
+
+    private void Update() 
+    {
+        // return right away if dialogue isn't playing
+        if (!dialogueIsPlaying) 
         {
             return;
         }
-        
-        if (currentStory.currentChoices.Count == 0 && InputManager.GetInstance().GetSubmitPressed())
+
+        // handle continuing to the next line in the dialogue when submit is pressed
+        // NOTE: The 'currentStory.currentChoiecs.Count == 0' part was to fix a bug after the Youtube video was made
+        if (canContinueToNextLine 
+            && currentStory.currentChoices.Count == 0 
+            && InputManager.GetInstance().GetSubmitPressed())
         {
-            ContinueDialogue();
-            InputManager.GetInstance().RegisterSubmitPressed();
+            ContinueStory();
         }
     }
 
-    public void EnterDialogueMode(TextAsset inkJson)
+    public void EnterDialogueMode(TextAsset inkJSON, Animator emoteAnimator) 
     {
-        if (!dialogueIsPlaying)
-        {
-            currentStory = new Story(inkJson.text);
-            dialogueIsPlaying = true;
-            dialoguePanel.SetActive(true);
-            dialogueVariableTracker.ListenAtStart(currentStory);
+        currentStory = new Story(inkJSON.text);
+        dialogueIsPlaying = true;
+        dialoguePanel.SetActive(true);
 
-            displayNameText.text = "???";
-            portraitAnimation.Play("DefaultAnimation");
-            layoutSwitch.Play("SpeakerRight");
-            
-            ContinueDialogue();
-        }
+        dialogueVariables.StartListening(currentStory);
+        inkExternalFunctions.Bind(currentStory, emoteAnimator);
+
+        // reset portrait, layout, and speaker
+        displayNameText.text = "???";
+        portraitAnimator.Play("default");
+        layoutAnimator.Play("right");
+
+        ContinueStory();
     }
-    public bool IsDialoguePlaying()
+
+    private IEnumerator ExitDialogueMode() 
     {
-        return dialogueIsPlaying;
+        yield return new WaitForSeconds(0.2f);
+
+        dialogueVariables.StopListening(currentStory);
+        inkExternalFunctions.Unbind(currentStory);
+
+        dialogueIsPlaying = false;
+        dialoguePanel.SetActive(false);
+        dialogueText.text = "";
+
+        // go back to default audio
+        SetCurrentAudioInfo(defaultAudioInfo.id);
     }
-    public void ContinueDialogue()
+
+    private void ContinueStory() 
     {
-        if (currentStory != null && dialogueIsPlaying)
+        if (currentStory.canContinue) 
         {
-            if (currentStory.canContinue)
+            // set text for the current dialogue line
+            if (displayLineCoroutine != null) 
             {
-                if (typeLineOutCoroutine != null)
-                {
-                    StopCoroutine(typeLineOutCoroutine);
-                }
-                typeLineOutCoroutine = StartCoroutine(TypeDisplayLine(currentStory.Continue()));
-                //dialogueText.text = currentStory.Continue();
-
+                StopCoroutine(displayLineCoroutine);
+            }
+            string nextLine = currentStory.Continue();
+            // handle case where the last line is an external function
+            if (nextLine.Equals("") && !currentStory.canContinue)
+            {
+                StartCoroutine(ExitDialogueMode());
+            }
+            // otherwise, handle the normal case for continuing the story
+            else 
+            {
+                // handle tags
                 HandleTags(currentStory.currentTags);
-            }
-            else
-            {
-                if (currentStory.currentChoices.Count == 0)
-                {
-                    StartCoroutine(ExitDialogueMode());
-                }
+                displayLineCoroutine = StartCoroutine(DisplayLine(nextLine));
             }
         }
+        else 
+        {
+            StartCoroutine(ExitDialogueMode());
+        }
     }
-    private IEnumerator TypeDisplayLine(string line)
+
+    private IEnumerator DisplayLine(string line) 
     {
+        // set the text to the full line, but set the visible characters to 0
         dialogueText.text = line;
         dialogueText.maxVisibleCharacters = 0;
-        continueIndicator.SetActive(false);
-        HideChoicesAtStart();
+        // hide items while text is typing
+        continueIcon.SetActive(false);
+        HideChoices();
+
         canContinueToNextLine = false;
-        bool hasStyleApplied = false;
+
+        bool isAddingRichTextTag = false;
+
+        // display each letter one at a time
         foreach (char letter in line.ToCharArray())
         {
-            if (InputManager.GetInstance().GetSubmitPressed())
+            // if the submit button is pressed, finish up displaying the line right away
+            if (InputManager.GetInstance().GetSubmitPressed()) 
             {
                 dialogueText.maxVisibleCharacters = line.Length;
                 break;
             }
 
-            if (letter == '<' || hasStyleApplied)
+            // check for rich text tag, if found, add it without waiting
+            if (letter == '<' || isAddingRichTextTag) 
             {
-                hasStyleApplied = true;
+                isAddingRichTextTag = true;
                 if (letter == '>')
                 {
-                    hasStyleApplied = false;
+                    isAddingRichTextTag = false;
                 }
             }
-            else
+            // if not rich text, add the next letter and wait a small time
+            else 
             {
+                PlayDialogueSound(dialogueText.maxVisibleCharacters, dialogueText.text[dialogueText.maxVisibleCharacters]);
                 dialogueText.maxVisibleCharacters++;
-                yield return new WaitForSeconds(displaySpeed);
+                yield return new WaitForSeconds(typingSpeed);
             }
         }
-        continueIndicator.SetActive(false);
-        DisplayResponses();
+
+        // actions to take after the entire line has finished displaying
+        continueIcon.SetActive(true);
+        DisplayChoices();
+
         canContinueToNextLine = true;
     }
+
+    private void PlayDialogueSound(int currentDisplayedCharacterCount, char currentCharacter)
+{
+    // Ensure audio clips are available
+    if (currentAudioInfo.dialogueTypingSoundClips == null || currentAudioInfo.dialogueTypingSoundClips.Length == 0)
+    {
+        Debug.LogWarning("No dialogue typing sound clips available.");
+        return;
+    }
+
+    // set variables for the below based on our config
+    AudioClip[] dialogueTypingSoundClips = currentAudioInfo.dialogueTypingSoundClips;
+    int frequencyLevel = currentAudioInfo.frequencyLevel;
+    float minPitch = currentAudioInfo.minPitch;
+    float maxPitch = currentAudioInfo.maxPitch;
+    bool stopAudioSource = currentAudioInfo.stopAudioSource;
+
+    // play the sound based on the config
+    if (currentDisplayedCharacterCount % frequencyLevel == 0)
+    {
+        if (stopAudioSource) 
+        {
+            audioSource.Stop();
+        }
+        AudioClip soundClip = null;
+        // create predictable audio from hashing
+        if (makePredictable) 
+        {
+            int hashCode = currentCharacter.GetHashCode();
+            // sound clip
+            int predictableIndex = Mathf.Abs(hashCode % dialogueTypingSoundClips.Length);
+            soundClip = dialogueTypingSoundClips[predictableIndex];
+            // pitch
+            int minPitchInt = (int) (minPitch * 100);
+            int maxPitchInt = (int) (maxPitch * 100);
+            int pitchRangeInt = maxPitchInt - minPitchInt;
+            // cannot divide by 0, so if there is no range then skip the selection
+            if (pitchRangeInt != 0) 
+            {
+                int predictablePitchInt = Mathf.Abs((hashCode % pitchRangeInt) + minPitchInt);
+                float predictablePitch = predictablePitchInt / 100f;
+                audioSource.pitch = predictablePitch;
+            }
+            else 
+            {
+                audioSource.pitch = minPitch;
+            }
+        }
+        // otherwise, randomize the audio
+        else 
+        {
+            // sound clip
+            int randomIndex = UnityEngine.Random.Range(0, dialogueTypingSoundClips.Length);
+            soundClip = dialogueTypingSoundClips[randomIndex];
+            // pitch
+            audioSource.pitch = UnityEngine.Random.Range(minPitch, maxPitch);
+        }
+        
+        // play sound
+        audioSource.PlayOneShot(soundClip);
+    }
+}
+
+
+
+    private void HideChoices() 
+    {
+        foreach (GameObject choiceButton in choices) 
+        {
+            choiceButton.SetActive(false);
+        }
+    }
+
     private void HandleTags(List<string> currentTags)
     {
-        foreach (string tag in currentTags)
+        // loop through each tag and handle it accordingly
+        foreach (string tag in currentTags) 
         {
+            // parse the tag
             string[] splitTag = tag.Split(':');
-            if (splitTag.Length != 2)
+            if (splitTag.Length != 2) 
             {
-                Debug.Log("WUPSIES could not sort this out mate... No Bueno..." + tag);
+                Debug.LogError("Tag could not be appropriately parsed: " + tag);
             }
-
-            string keyTag = splitTag[0].Trim();
-            string valueOfTag = splitTag[1].Trim();
-
-            switch (keyTag)
+            string tagKey = splitTag[0].Trim();
+            string tagValue = splitTag[1].Trim();
+            
+            // handle the tag
+            switch (tagKey) 
             {
-                case SPEAKERTAG:
-                    displayNameText.text = valueOfTag;
-                    Debug.Log("Speaker is = " + valueOfTag);
+                case SPEAKER_TAG:
+                    displayNameText.text = tagValue;
                     break;
-                case SPEAKERPORTRAIT:
-                    portraitAnimation.Play(valueOfTag);
-                    Debug.Log("Speaker portrait is = " + valueOfTag);
+                case PORTRAIT_TAG:
+                    portraitAnimator.Play(tagValue);
                     break;
-                case SPEAKERLAYOUT:
-                    layoutSwitch.Play(valueOfTag);
-                    Debug.Log("Speaker layout is = " + valueOfTag);
+                case LAYOUT_TAG:
+                    layoutAnimator.Play(tagValue);
+                    break;
+                case AUDIO_TAG: 
+                    SetCurrentAudioInfo(tagValue);
                     break;
                 default:
-                    Debug.Log("You didn't set up the narrative script properly you moron." + tag);
+                    Debug.LogWarning("Tag came in but is not currently being handled: " + tag);
                     break;
             }
         }
     }
-    private void DisplayResponses()
+
+    private void DisplayChoices() 
     {
         List<Choice> currentChoices = currentStory.currentChoices;
 
-        for (int i = 0; i < choices.Length; i++)
+        // defensive check to make sure our UI can support the number of choices coming in
+        if (currentChoices.Count > choices.Length)
         {
-            if (i < currentChoices.Count)
-            {
-                choices[i].SetActive(true);
-                choiceText[i].text = currentChoices[i].text;
-            }
-            else
-            {
-                choices[i].SetActive(false);
-            }
+            Debug.LogError("More choices were given than the UI can support. Number of choices given: " 
+                + currentChoices.Count);
         }
+
+        int index = 0;
+        // enable and initialize the choices up to the amount of choices for this line of dialogue
+        foreach(Choice choice in currentChoices) 
+        {
+            choices[index].gameObject.SetActive(true);
+            choicesText[index].text = choice.text;
+            index++;
+        }
+        // go through the remaining choices the UI supports and make sure they're hidden
+        for (int i = index; i < choices.Length; i++) 
+        {
+            choices[i].gameObject.SetActive(false);
+        }
+
         StartCoroutine(SelectFirstChoice());
     }
-    private void HideChoicesAtStart()
+
+    private IEnumerator SelectFirstChoice() 
     {
-        foreach (GameObject currentChoices in choices)
-        {
-            currentChoices.SetActive(false);
-        }
-    }
-    private IEnumerator SelectFirstChoice()
-    {
-        yield return null;
+        // Event System requires we clear it first, then wait
+        // for at least one frame before we set the current selected object.
         EventSystem.current.SetSelectedGameObject(null);
         yield return new WaitForEndOfFrame();
-        EventSystem.current.SetSelectedGameObject(choices[0]);
+        EventSystem.current.SetSelectedGameObject(choices[0].gameObject);
     }
 
-    public void MakeDecision(int choiceIndex)
+    public void MakeChoice(int choiceIndex)
     {
-        if (canContinueToNextLine)
+        if (canContinueToNextLine) 
         {
             currentStory.ChooseChoiceIndex(choiceIndex);
-            InputManager.GetInstance().RegisterSubmitPressed();
-            ContinueDialogue();
-            //responseSelected = true;
+            // NOTE: The below two lines were added to fix a bug after the Youtube video was made
+            InputManager.GetInstance().RegisterSubmitPressed(); // this is specific to my InputManager script
+            ContinueStory();
         }
-    }
-    private void CloseDialogue()
-    {
-        dialogueIsPlaying = false;
-        dialoguePanel.SetActive(false);
-        dialogueText.text = "";
-        currentStory = null;
-        responseSelected = false; // Reset response selection flag
-    }
-    private IEnumerator ExitDialogueMode() 
-    {
-        yield return new WaitForSeconds(0.2f);
-        dialogueVariableTracker.ListeningEnd(currentStory);
-        CloseDialogue();
     }
 
-    public void OnApplicationQuit()
+    public Ink.Runtime.Object GetVariableState(string variableName) 
     {
-        if (dialogueVariableTracker != null)
+        Ink.Runtime.Object variableValue = null;
+        dialogueVariables.variables.TryGetValue(variableName, out variableValue);
+        if (variableValue == null) 
         {
-            dialogueVariableTracker.SaveVariables();
+            Debug.LogWarning("Ink Variable was found to be null: " + variableName);
         }
+        return variableValue;
+    }
+
+    // This method will get called anytime the application exits.
+    // Depending on your game, you may want to save variable state in other places.
+    public void OnApplicationQuit() 
+    {
+        dialogueVariables.SaveVariables();
     }
 }
