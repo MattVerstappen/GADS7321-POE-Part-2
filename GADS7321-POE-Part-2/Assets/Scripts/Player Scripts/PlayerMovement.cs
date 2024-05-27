@@ -1,78 +1,139 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("Movement Params")]
-    public float runSpeed = 6.0f;
-    public float jumpSpeed = 8.0f;
-    public float gravityScale = 20.0f;
+    // Movement speed of the player
+    [SerializeField] private float speed = 5f;
+    // Jumping speed of the player
+    [SerializeField] private float jumpSpeed = 10f;
+    // Layer mask for detecting ground
+    [SerializeField] private LayerMask groundLayer;
+    // Range for interaction with objects
+    [SerializeField] private float interactionRange = 2f;
+    private Rigidbody2D body;
+    private Animator anim;
+    private bool grounded;
+    private float groundCheckRadius = 0.5f;
+    private Vector2 groundCheckOffset;
+    private DialogueTrigger currentDialogueTrigger;
 
-    // components attached to player
-    private BoxCollider2D coll;
-    private Rigidbody2D rb;
-
-    // other
-    private bool isGrounded = false;
-
+    // Called when the PlayerMovement object is created
     private void Awake()
     {
-        coll = GetComponent<BoxCollider2D>();
-        rb = GetComponent<Rigidbody2D>();
-
-        rb.gravityScale = gravityScale;
+        InitializeComponents();
+        groundCheckOffset = new Vector2(0, -GetComponent<Collider2D>().bounds.extents.y - 0.1f);
     }
 
+    // Called every fixed frame
     private void FixedUpdate()
     {
         if (DialogueManager.GetInstance().dialogueIsPlaying)
         {
             return;
         }
-
-        UpdateIsGrounded();
-
-        HandleHorizontalMovement();
-
+        CheckGrounded();
+        HandleMovement();
         HandleJumping();
+        HandleInteraction();
     }
 
-    private void UpdateIsGrounded()
+    // Initializes required components
+    private void InitializeComponents()
     {
-        Bounds colliderBounds = coll.bounds;
-        float colliderRadius = coll.size.x * 0.4f * Mathf.Abs(transform.localScale.x);
-        Vector3 groundCheckPos = colliderBounds.min + new Vector3(colliderBounds.size.x * 0.5f, colliderRadius * 0.9f, 0);
-        // Check if player is grounded
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(groundCheckPos, colliderRadius);
-        // Check if any of the overlapping colliders are not player collider, if so, set isGrounded to true
-        this.isGrounded = false;
-        if (colliders.Length > 0)
-        {
-            for (int i = 0; i < colliders.Length; i++)
-            {
-                if (colliders[i] != coll)
-                {
-                    this.isGrounded = true;
-                    break;
-                }
-            }
-        }
+        body = GetComponent<Rigidbody2D>();
+        anim = GetComponent<Animator>();
+        Debug.Log("Components Initialized");
     }
 
-    private void HandleHorizontalMovement()
+    // Handles player movement
+    private void HandleMovement()
     {
-        Vector2 moveDirection = InputManager.GetInstance().GetMoveDirection();
-        rb.velocity = new Vector2(moveDirection.x * runSpeed, rb.velocity.y);
+        Vector2 moveInput = GetMoveInput();
+        body.velocity = new Vector2(moveInput.x * speed, body.velocity.y);
+
+        // Flip player when moving left and right
+        if (moveInput.x > 0.01f)
+            transform.localScale = Vector3.one;
+        else if (moveInput.x < -0.01f)
+            transform.localScale = new Vector3(-1, 1, 1);
+
+        // Trigger animation based on movement
+        anim.SetBool("run", Mathf.Abs(body.velocity.x) > 0.01f);
     }
 
+    // Retrieves player movement input
+    private Vector2 GetMoveInput()
+    {
+        return new Vector2(
+            Input.GetAxisRaw("Horizontal"),
+            0
+        );
+    }
+
+    // Handles player jumping
     private void HandleJumping()
     {
-        bool jumpPressed = InputManager.GetInstance().GetJumpPressed();
-        if (isGrounded && jumpPressed)
+        if (Input.GetButtonDown("Jump") && grounded)
         {
-            isGrounded = false;
-            rb.velocity = new Vector2(rb.velocity.x, jumpSpeed);
+            body.velocity = new Vector2(body.velocity.x, jumpSpeed);
         }
     }
 
+    // Checks if the player is grounded
+    private void CheckGrounded()
+    {
+        Vector2 position = (Vector2)transform.position + groundCheckOffset;
+        grounded = Physics2D.OverlapCircle(position, groundCheckRadius, groundLayer);
+        Debug.Log("Player grounded state: " + grounded);
+
+        // Trigger animation based on grounded state
+        anim.SetBool("grounded", grounded);
+    }
+    
+    // Handles player interaction with objects
+    private void HandleInteraction()
+    {
+        InputManager inputManager = InputManager.GetInstance();
+        if (inputManager != null && inputManager.GetInteractPressed() && currentDialogueTrigger != null)
+        {
+            Debug.Log("Interact button pressed while in range.");
+            // Invoke the TriggerDialogue method of the DialogueTrigger class
+            currentDialogueTrigger.Invoke("TriggerDialogue", 0f);
+        }
+        
+        if (inputManager != null && inputManager.GetSubmitPressed())
+        {
+            Debug.Log("Submit button pressed in PlayerMovement.");
+        }
+    }
+
+    // Called when a collider enters the trigger collider
+    private void OnTriggerEnter2D(Collider2D collider)
+    {
+        DialogueTrigger dialogueTrigger = collider.gameObject.GetComponent<DialogueTrigger>();
+        if (dialogueTrigger != null)
+        {
+            currentDialogueTrigger = dialogueTrigger;
+        }
+    }
+
+    // Called when a collider exits the trigger collider
+    private void OnTriggerExit2D(Collider2D collider)
+    {
+        DialogueTrigger dialogueTrigger = collider.gameObject.GetComponent<DialogueTrigger>();
+        if (dialogueTrigger != null && dialogueTrigger == currentDialogueTrigger)
+        {
+            currentDialogueTrigger = null;
+        }
+    }
+
+    // Draws interaction range and ground check radius in the     // Unity editor
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, interactionRange);
+        Vector2 position = (Vector2)transform.position + groundCheckOffset;
+        Gizmos.DrawWireSphere(position, groundCheckRadius);
+    }
 }
+

@@ -1,5 +1,4 @@
 using UnityEngine;
-using Ink.Runtime;
 
 public class DialogueTrigger : MonoBehaviour
 {
@@ -19,36 +18,31 @@ public class DialogueTrigger : MonoBehaviour
         playerInRange = false;
         visualCue.SetActive(false);
     }
-
-    private void Update() 
+    private void Update()
     {
-        if (playerInRange && !DialogueManager.GetInstance().dialogueIsPlaying) 
+        if (playerInRange && InputManager.GetInstance().GetInteractPressed())
         {
-            visualCue.SetActive(true);
-            if (InputManager.GetInstance().GetInteractPressed()) 
+            if (!DialogueManager.GetInstance().dialogueIsPlaying)
             {
                 DialogueManager.GetInstance().EnterDialogueMode(inkJSON, emoteAnimator);
             }
         }
-        else 
-        {
-            visualCue.SetActive(false);
-        }
     }
 
-    private void OnTriggerEnter2D(Collider2D collider) 
+    private void OnTriggerEnter2D(Collider2D collider)
     {
-        if (collider.gameObject.tag == "Player")
+        if (collider.gameObject.CompareTag("Player"))
         {
             playerInRange = true;
+            visualCue.SetActive(true);
         }
     }
-
-    private void OnTriggerExit2D(Collider2D collider) 
+    private void OnTriggerExit2D(Collider2D collider)
     {
-        if (collider.gameObject.tag == "Player")
+        if (collider.gameObject.CompareTag("Player"))
         {
             playerInRange = false;
+            visualCue.SetActive(false);
         }
     }
 }

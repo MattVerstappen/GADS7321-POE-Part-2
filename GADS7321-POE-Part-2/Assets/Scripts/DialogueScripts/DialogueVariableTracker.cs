@@ -1,63 +1,63 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Ink.Runtime;
-using Object = Ink.Runtime.Object;
 
 public class DialogueVariableTracker
 {
+    // Dictionary to store dialogue variables
     public Dictionary<string, Ink.Runtime.Object> variables { get; private set; }
 
     private Story globalVariablesStory;
     private const string saveVariablesKey = "INK_VARIABLES";
 
+    // Constructor to initialize dialogue variables
     public DialogueVariableTracker(TextAsset loadGlobalsJSON) 
     {
-        // create the story
+        // Initialize Ink story for global variables
         globalVariablesStory = new Story(loadGlobalsJSON.text);
-        // if we have saved data, load it
-        // if (PlayerPrefs.HasKey(saveVariablesKey))
-        // {
-        //     string jsonState = PlayerPrefs.GetString(saveVariablesKey);
-        //     globalVariablesStory.state.LoadJson(jsonState);
-        // }
-
-        // initialize the dictionary
+        
+        // Initialize dictionary to store variables
         variables = new Dictionary<string, Ink.Runtime.Object>();
         foreach (string name in globalVariablesStory.variablesState)
         {
+            // Add global variables to the dictionary
             Ink.Runtime.Object value = globalVariablesStory.variablesState.GetVariableWithName(name);
             variables.Add(name, value);
             Debug.Log("Initialized global dialogue variable: " + name + " = " + value);
         }
     }
 
+    // Saves the state of dialogue variables
     public void SaveVariables() 
     {
         if (globalVariablesStory != null) 
         {
-            // Load the current state of all of our variables to the globals story
+            // Save variables to Ink story
             VariablesToStory(globalVariablesStory);
-            // NOTE: eventually, you'd want to replace this with an actual save/load method
-            // rather than using PlayerPrefs.
+            // Store variables in PlayerPrefs (temporary)
             PlayerPrefs.SetString(saveVariablesKey, globalVariablesStory.state.ToJson());
         }
     }
 
+    // Starts listening for changes in dialogue variables
     public void StartListening(Story story) 
     {
-        // it's important that VariablesToStory is before assigning the listener!
+        // Update variables in the story
         VariablesToStory(story);
+        // Listen for variable changes
         story.variablesState.variableChangedEvent += VariableChanged;
     }
 
+    // Stops listening for changes in dialogue variables
     public void StopListening(Story story) 
     {
         story.variablesState.variableChangedEvent -= VariableChanged;
     }
 
+    // Updates dialogue variables in response to changes
     private void VariableChanged(string name, Ink.Runtime.Object value) 
     {
-        // only maintain variables that were initialized from the globals ink file
+        // Update variables if they were initialized from global variables
         if (variables.ContainsKey(name)) 
         {
             variables.Remove(name);
@@ -65,12 +65,13 @@ public class DialogueVariableTracker
         }
     }
 
+    // Copies dialogue variables to a specific Ink story
     private void VariablesToStory(Story story) 
     {
         foreach(KeyValuePair<string, Ink.Runtime.Object> variable in variables) 
         {
+            // Set global variables in the story
             story.variablesState.SetGlobal(variable.Key, variable.Value);
         }
     }
-
 }
