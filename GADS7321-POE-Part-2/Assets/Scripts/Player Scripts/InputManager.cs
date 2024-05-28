@@ -20,6 +20,15 @@ public class InputManager : MonoBehaviour
         }
         instance = this;
         controls = new PlayerControls();
+        
+        // Register callback for the "interact" action - > for some reason not including this prevents interaction from happening
+        controls.game.interact.performed += InteractButtonPressed;
+        controls.game.interact.canceled += InteractButtonPressed;
+
+        // Register callback for the "submit" action
+        controls.game.submit.performed += SubmitPressed;
+        controls.game.submit.canceled += SubmitPressed;
+
 
         Debug.Log("InputManager instance set.");
 
