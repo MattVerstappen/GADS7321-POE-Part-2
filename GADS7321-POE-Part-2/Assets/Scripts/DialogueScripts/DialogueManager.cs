@@ -4,18 +4,16 @@ using Ink.Runtime;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.EventSystems;
+using System.Text.RegularExpressions;
 
 public class DialogueManager : MonoBehaviour
 {
-    // Typing speed for displaying dialogue text
-    [Header("Typing Speed Set up")]
+    [Header("Typing Speed Setup")]
     [SerializeField] private float typingSpeed = 0.04f;
 
-    // JSON file containing global variables for the dialogue
     [Header("Load Globals JSON file")]
     [SerializeField] private TextAsset loadGlobalsJSON;
 
-    // UI elements for displaying dialogue
     [Header("Dialogue UI Management")]
     [SerializeField] private GameObject dialoguePanel;
     [SerializeField] private GameObject continueIcon;
@@ -24,7 +22,6 @@ public class DialogueManager : MonoBehaviour
     [SerializeField] private Animator portraitAnimator;
     private Animator layoutAnimator;
 
-    // UI elements for displaying choices
     [Header("Choices UI Management")]
     [SerializeField] private GameObject[] choices;
     private TextMeshProUGUI[] choicesText;
@@ -43,9 +40,7 @@ public class DialogueManager : MonoBehaviour
     private const string LAYOUT_TAG = "layout";
 
     private DialogueVariableTracker dialogueVariables;
-    private InkExternalFunctions inkExternalFunctions;
 
-    // Called when the DialogueManager object is created
     private void Awake()
     {
         if (instance != null)
@@ -54,90 +49,69 @@ public class DialogueManager : MonoBehaviour
         }
         instance = this;
 
-        // Initialize dialogue variable tracker and Ink external functions
         dialogueVariables = new DialogueVariableTracker(loadGlobalsJSON);
-        inkExternalFunctions = new InkExternalFunctions();
     }
 
-    // Retrieves the DialogueManager instance
     public static DialogueManager GetInstance()
     {
         return instance;
     }
 
-    // Called when the DialogueManager object is enabled
     private void Start()
     {
         dialogueIsPlaying = false;
         dialoguePanel.SetActive(false);
 
-        // Get the layout animator
         layoutAnimator = dialoguePanel.GetComponent<Animator>();
 
-        // Get all of the choices text 
         choicesText = new TextMeshProUGUI[choices.Length];
         int index = 0;
         foreach (GameObject choice in choices)
         {
-            choicesText[index] = choice.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+            choicesText[index] = choice.GetComponentInChildren<TextMeshProUGUI>();
             index++;
         }
     }
 
-    // Called every frame
     private void Update()
     {
-        // Check if dialogue is not playing
         if (!dialogueIsPlaying)
         {
             return;
         }
 
-        // Check if player can continue to the next line and input is received
-        if (canContinueToNextLine && dialogueIsPlaying && InputManager.GetInstance().GetSubmitPressed())
+        if (canContinueToNextLine && currentStory.currentChoices.Count == 0 && InputManager.GetInstance().GetSubmitPressed())
         {
-            ContinueStory(); // Called from Update, allows player to continue through dialogue
-            InputManager.GetInstance().RegisterSubmitPressed();
+            ContinueStory();
         }
     }
 
-    // Initiates a dialogue sequence
-    public void EnterDialogueMode(TextAsset inkJSON, Animator emoteAnimator)
+    public void EnterDialogueMode(TextAsset inkJSON)
     {
-        // Initialize a new Ink story
         currentStory = new Story(inkJSON.text);
         dialogueIsPlaying = true;
         dialoguePanel.SetActive(true);
 
-        // Start listening for dialogue variables
         dialogueVariables.StartListening(currentStory);
-        // Bind external functions for Ink script
-        inkExternalFunctions.Bind(currentStory, emoteAnimator);
 
-        // Set default display name and portrait animation
         displayNameText.text = "???";
         portraitAnimator.Play("default");
         layoutAnimator.Play("right");
 
-        ContinueStory(); // Start the dialogue
+        ContinueStory();
     }
 
-    // Exits the dialogue mode
     private IEnumerator ExitDialogueMode()
     {
         yield return new WaitForSeconds(0.2f);
 
-        // Stop listening for dialogue variables
         dialogueVariables.StopListening(currentStory);
-        // Unbind external functions
-        inkExternalFunctions.Unbind(currentStory);
 
         dialogueIsPlaying = false;
         dialoguePanel.SetActive(false);
         dialogueText.text = "";
     }
 
-    // Continues the dialogue
     private void ContinueStory()
     {
         if (currentStory.canContinue)
@@ -148,6 +122,11 @@ public class DialogueManager : MonoBehaviour
             }
             string nextLine = currentStory.Continue();
             HandleTags(currentStory.currentTags);
+            nextLine = ApplyDisruptionEffects(nextLine);
+
+            // Debug log to print the text that will be displayed
+            Debug.Log("Displaying text: " + nextLine);
+
             displayLineCoroutine = StartCoroutine(DisplayLine(nextLine));
         }
         else
@@ -156,7 +135,21 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    // Displays a line of dialogue with a typewriter effect
+    private string ApplyDisruptionEffects(string text)
+    {
+        var regex = new Regex(@"<disruption>(.*?)<\/disruption>");
+        var matches = regex.Matches(text);
+
+        foreach (Match match in matches)
+        {
+            string disruptedText = match.Groups[1].Value;
+            string scrambledText = ADHDDisruptionSystem.ApplyDisruption(disruptedText);
+            text = text.Replace(match.Value, scrambledText);
+        }
+
+        return text;
+    }
+
     private IEnumerator DisplayLine(string line)
     {
         dialogueText.text = line;
@@ -197,7 +190,6 @@ public class DialogueManager : MonoBehaviour
         canContinueToNextLine = true;
     }
 
-    // Hides choice buttons
     private void HideChoices()
     {
         foreach (GameObject choiceButton in choices)
@@ -206,7 +198,6 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    // Handles special tags in dialogue lines
     private void HandleTags(List<string> currentTags)
     {
         foreach (string tag in currentTags)
@@ -237,7 +228,6 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    // Displays choices for the player to select
     private void DisplayChoices()
     {
         List<Choice> currentChoices = currentStory.currentChoices;
@@ -263,34 +253,25 @@ public class DialogueManager : MonoBehaviour
         StartCoroutine(SelectFirstChoice());
     }
 
-    // Automatically selects the first choice
     private IEnumerator SelectFirstChoice()
     {
-        // Ensure that no UI element is selected
         EventSystem.current.SetSelectedGameObject(null);
         yield return new WaitForEndOfFrame();
-        // Select the first choice button
         EventSystem.current.SetSelectedGameObject(choices[0].gameObject);
     }
 
-    // Handles player's choice selection
     public void MakeChoice(int choiceIndex)
     {
-        // Check if the player can continue to the next line
-        if (canContinueToNextLine) 
+        if (canContinueToNextLine)
         {
-            // Choose the selected choice index
             currentStory.ChooseChoiceIndex(choiceIndex);
-            // Register submit input press
-            InputManager.GetInstance().RegisterSubmitPressed(); // this is specific to my InputManager script
-            ContinueStory(); // Proceed to the next part of the story
+            InputManager.GetInstance().RegisterSubmitPressed();
+            ContinueStory();
         }
     }
 
-    // Retrieves the value of a dialogue variable
     public Ink.Runtime.Object GetVariableState(string variableName)
     {
-        // Retrieve the value of the specified variable
         Ink.Runtime.Object variableValue = null;
         dialogueVariables.variables.TryGetValue(variableName, out variableValue);
         if (variableValue == null)
@@ -300,10 +281,8 @@ public class DialogueManager : MonoBehaviour
         return variableValue;
     }
 
-    // Called when the application quits, saves dialogue variables
     public void OnApplicationQuit()
     {
         dialogueVariables.SaveVariables();
     }
 }
-
