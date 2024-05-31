@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 public class DialogueManager : MonoBehaviour
 {
     [Header("Typing Speed Setup")] [SerializeField]
-    private float typingSpeed = 0.04f;
+    private float typingSpeed = 1f;
 
     [Header("Load Globals JSON file")] [SerializeField]
     private TextAsset loadGlobalsJSON;
@@ -169,10 +169,9 @@ public class DialogueManager : MonoBehaviour
     HideChoices();
 
     canContinueToNextLine = false;
-
-    bool isAddingRichTextTag = false;
+    
     bool audioPaused = false;
-    bool insideDisruptionTag = false;
+    bool isDisrupting = false;
 
     foreach (char letter in line)
     {
@@ -182,45 +181,23 @@ public class DialogueManager : MonoBehaviour
             break;
         }
 
-        if (letter == '<')
-        {
-            isAddingRichTextTag = true;
-            string remainingLine = line.Substring(count);
-            if (remainingLine.StartsWith("<disruption>"))
-            {
-                insideDisruptionTag = true;
-            }
-            else if (remainingLine.StartsWith("</disruption>"))
-            {
-                insideDisruptionTag = false;
-            }
-        }
-
-        if (isAddingRichTextTag)
-        {
-            if (letter == '>')
-            {
-                isAddingRichTextTag = false;
-            }
+        if (letter != unscrambledChars[count])
+        { 
+            audioPaused = true;
         }
         else
         {
-            // Determine if the audio should be paused based on being inside disruption tags
-            audioPaused = insideDisruptionTag || (letter != unscrambledChars[count]);
-
-            // Play dialogue sound only if audio is not paused
-            if (!audioPaused)
-            {
-                PlayDialogueSound(dialogueText.maxVisibleCharacters, letter);
-            }
-
-            if (count < displayedLine.Length && displayedLine[count] == letter)
-            {
-                dialogueText.maxVisibleCharacters++;
-            }
-
-            yield return new WaitForSeconds(typingSpeed);
+            audioPaused = false;
         }
+        
+        PlayDialogueSound(dialogueText.maxVisibleCharacters, letter,audioPaused);
+
+        if (count < displayedLine.Length && displayedLine[count] == letter)
+        {
+            dialogueText.maxVisibleCharacters++;
+        }
+
+        yield return new WaitForSeconds(typingSpeed);
 
         count++;
     }
@@ -359,22 +336,15 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    private void PlayDialogueSound(int currentDisplayedCharacterCount, char currentCharacter)
+    private void PlayDialogueSound(int currentDisplayedCharacterCount, char currentCharacter,bool audioPause)
     {
         AudioClip[] dialogueTypingSoundClips = currentAudioInfo.dialogueTypingSoundClips;
         int frequencyLevel = currentAudioInfo.frequencyLevel;
         float minPitch = currentAudioInfo.minPitch;
         float maxPitch = currentAudioInfo.maxPitch;
-        bool stopAudioSource = currentAudioInfo.stopAudioSource;
-
+        AudioClip soundClip = null;
         if (currentDisplayedCharacterCount % frequencyLevel == 0)
         {
-            if (stopAudioSource)
-            {
-                audioSource.Stop();
-            }
-
-            AudioClip soundClip = null;
             if (makePredictable)
             {
                 int hashCode = currentCharacter.GetHashCode();
@@ -400,9 +370,18 @@ public class DialogueManager : MonoBehaviour
                 soundClip = dialogueTypingSoundClips[randomIndex];
                 audioSource.pitch = Random.Range(minPitch, maxPitch);
             }
-
-            audioSource.PlayOneShot(soundClip);
         }
+
+        if(audioPause == false)
+        {
+            audioSource.mute = audioPause;
+        }
+        else if(audioPause)
+        {
+            audioSource.mute = audioPause;
+        }
+        
+        audioSource.PlayOneShot(soundClip);
     }
 
 
