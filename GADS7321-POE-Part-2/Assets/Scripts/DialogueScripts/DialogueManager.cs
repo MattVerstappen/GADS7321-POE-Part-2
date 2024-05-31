@@ -40,6 +40,9 @@ public class DialogueManager : MonoBehaviour
     private const string LAYOUT_TAG = "layout";
 
     private DialogueVariableTracker dialogueVariables;
+    
+    [Header("Scramble Effect")]
+    [SerializeField] private ScrambleEffectController scrambleEffectController;
 
     private void Awake()
     {
