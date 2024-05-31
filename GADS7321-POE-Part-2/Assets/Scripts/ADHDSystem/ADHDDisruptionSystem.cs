@@ -10,13 +10,15 @@ public class ADHDDisruptionSystem : MonoBehaviour
     [SerializeField] private Image npcPortrait;
     private Material scrambleMaterial;
     private Coroutine scrambleCoroutine;
-    [SerializeField] private float currentScrambleAmount = 1f; 
+    [SerializeField] private float currentScrambleAmount = 1f;
+    private bool isTextDisrupted = false;
+    public string unscrambledText;
 
     void Start()
     {
         scrambleMaterial = new Material(Shader.Find("Custom/ScrambleShader"));
         npcPortrait.material = scrambleMaterial;
-        UpdateScrambleAmount(); // Apply initial scramble amount
+        UpdateScrambleAmount();
     }
 
     public void StartScrambling(float amount, float duration)
@@ -34,7 +36,7 @@ public class ADHDDisruptionSystem : MonoBehaviour
         {
             StopCoroutine(scrambleCoroutine);
         }
-        SetScrambleAmount(0f); // Stop scrambling by setting scramble amount to 0
+        SetScrambleAmount(0f);
     }
 
     public void SetScrambleAmount(float amount)
@@ -73,19 +75,23 @@ public class ADHDDisruptionSystem : MonoBehaviour
 
     public string ApplyDisruption(string text)
     {
-        // Regex to find <disruption> tags and capture the text between them
-        Regex regex = new Regex(@"<disruption>(.*?)<\/disruption>", RegexOptions.Singleline);
+        unscrambledText = text;
+        isTextDisrupted = false;
+
+        Regex regex = new Regex(@"<disruption>(.*?)<\/disruption>");
         MatchCollection matches = regex.Matches(text);
-        
-        // Process each match found
+
         foreach (Match match in matches)
         {
-            // Extract the text between <disruption> tags
+            isTextDisrupted = true;
+
             string disruptedText = match.Groups[1].Value;
-            // Scramble the extracted text
             string scrambledText = ScrambleText(disruptedText);
-            // Replace the original text within the <disruption> tags with scrambled text
-            text = text.Replace(match.Groups[1].Value, scrambledText);
+            string aloneText = RemoveDisruption(disruptedText);
+        
+            // Replacing with <disruption> tags included
+            unscrambledText = unscrambledText.Replace(match.Value, $"<disruption>{aloneText}</disruption>");
+            text = text.Replace(match.Value, $"<disruption>{scrambledText}</disruption>");
         }
 
         return text;
@@ -93,7 +99,6 @@ public class ADHDDisruptionSystem : MonoBehaviour
 
     private string ScrambleText(string text)
     {
-        // Regex to split the text into tokens while preserving tags and non-word characters
         Regex regex = new Regex(@"(<.*?>|[\w']+|[^\w\s<>]+|\s)");
         MatchCollection matches = regex.Matches(text);
 
@@ -105,20 +110,45 @@ public class ADHDDisruptionSystem : MonoBehaviour
             string token = match.Value;
             if (token.StartsWith("<") && token.EndsWith(">"))
             {
-                // If the token is a tag, add it to parts and mark as non-scramble position
                 parts.Add(token);
                 positions.Add(false);
             }
             else
             {
-                // If the token is a word or character, add it to parts and mark as scramble position
                 parts.Add(token);
                 positions.Add(true);
             }
         }
 
-        // Scramble only the words/characters, not the tags
         List<string> scrambledParts = ScrambleWords(parts, positions);
+
+        return string.Join("", scrambledParts);
+    }
+
+    private string RemoveDisruption(string text)
+    {
+        Regex regex = new Regex(@"(<.*?>|[\w']+|[^\w\s<>]+|\s)");
+        MatchCollection matches = regex.Matches(text);
+
+        List<string> parts = new List<string>();
+        List<bool> positions = new List<bool>();
+
+        foreach (Match match in matches)
+        {
+            string token = match.Value;
+            if (token.StartsWith("<") && token.EndsWith(">"))
+            {
+                parts.Add(token);
+                positions.Add(false);
+            }
+            else
+            {
+                parts.Add(token);
+                positions.Add(true);
+            }
+        }
+
+        List<string> scrambledParts = LeftAlone(parts, positions);
 
         return string.Join("", scrambledParts);
     }
@@ -132,7 +162,6 @@ public class ADHDDisruptionSystem : MonoBehaviour
         {
             if (positions[i])
             {
-                // Scramble the word/character if marked for scrambling
                 var word = parts[i];
                 char[] characters = word.ToCharArray();
                 int n = characters.Length;
@@ -154,11 +183,27 @@ public class ADHDDisruptionSystem : MonoBehaviour
             }
             else
             {
-                // Add the tag as-is if not marked for scrambling
                 scrambledParts.Add(parts[i]);
             }
         }
 
         return scrambledParts;
+    }
+    
+    private static List<string> LeftAlone(List<string> parts, List<bool> positions)
+    {
+        List<string> scrambledParts = new List<string>();
+
+        for (int i = 0; i < parts.Count; i++)
+        {
+            scrambledParts.Add(parts[i]);
+        }
+        
+        return scrambledParts;
+    }
+
+    public bool IsTextDisrupted()
+    {
+        return isTextDisrupted;
     }
 }

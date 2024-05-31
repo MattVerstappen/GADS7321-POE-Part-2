@@ -8,22 +8,24 @@ using System.Text.RegularExpressions;
 
 public class DialogueManager : MonoBehaviour
 {
-    [Header("Typing Speed Setup")]
-    [SerializeField] private float typingSpeed = 0.04f;
+    [Header("Typing Speed Setup")] [SerializeField]
+    private float typingSpeed = 0.04f;
 
-    [Header("Load Globals JSON file")]
-    [SerializeField] private TextAsset loadGlobalsJSON;
+    [Header("Load Globals JSON file")] [SerializeField]
+    private TextAsset loadGlobalsJSON;
 
-    [Header("Dialogue UI Management")]
-    [SerializeField] private GameObject dialoguePanel;
+    [Header("Dialogue UI Management")] [SerializeField]
+    private GameObject dialoguePanel;
+
     [SerializeField] private GameObject continueIcon;
     [SerializeField] private TextMeshProUGUI dialogueText;
     [SerializeField] private TextMeshProUGUI displayNameText;
     [SerializeField] private Animator portraitAnimator;
     private Animator layoutAnimator;
 
-    [Header("Choices UI Management")]
-    [SerializeField] private GameObject[] choices;
+    [Header("Choices UI Management")] [SerializeField]
+    private GameObject[] choices;
+
     private TextMeshProUGUI[] choicesText;
 
     private Story currentStory;
@@ -41,17 +43,17 @@ public class DialogueManager : MonoBehaviour
     private const string AUDIO_TAG = "audio";
 
     private DialogueVariableTracker dialogueVariables;
-    
-    [Header("Scramble Effect")]
-    [SerializeField] private ADHDDisruptionSystem scrambleEffectController;
-    
-    [Header("Audio")]
-    [SerializeField] private DialogueAudioInfoSO defaultAudioInfo;
+
+    [Header("Scramble Effect")] [SerializeField]
+    private ADHDDisruptionSystem scrambleEffectController;
+
+    [Header("Audio")] [SerializeField] private DialogueAudioInfoSO defaultAudioInfo;
     [SerializeField] private DialogueAudioInfoSO[] audioInfos;
     [SerializeField] private bool makePredictable;
     private DialogueAudioInfoSO currentAudioInfo;
     private Dictionary<string, DialogueAudioInfoSO> audioInfoDictionary;
     private AudioSource audioSource;
+    private bool audioPaused = false;
 
     private void Awake()
     {
@@ -59,11 +61,12 @@ public class DialogueManager : MonoBehaviour
         {
             Debug.LogWarning("Found more than one Dialogue Manager in the scene");
         }
+
         instance = this;
 
         dialogueVariables = new DialogueVariableTracker(loadGlobalsJSON);
-        
-        audioSource = this.gameObject.AddComponent<AudioSource>();
+
+        audioSource = gameObject.AddComponent<AudioSource>();
         currentAudioInfo = defaultAudioInfo;
     }
 
@@ -86,6 +89,7 @@ public class DialogueManager : MonoBehaviour
             choicesText[index] = choice.GetComponentInChildren<TextMeshProUGUI>();
             index++;
         }
+
         InitializeAudioInfoDictionary();
     }
 
@@ -96,7 +100,8 @@ public class DialogueManager : MonoBehaviour
             return;
         }
 
-        if (canContinueToNextLine && currentStory.currentChoices.Count == 0 && InputManager.GetInstance().GetSubmitPressed())
+        if (canContinueToNextLine && currentStory.currentChoices.Count == 0 &&
+            InputManager.GetInstance().GetSubmitPressed())
         {
             ContinueStory();
         }
@@ -137,14 +142,10 @@ public class DialogueManager : MonoBehaviour
             {
                 StopCoroutine(displayLineCoroutine);
             }
-            // Get the next line from the story
-            string nextLine = currentStory.Continue();
-            // Handle tags for the current line
-            HandleTags(currentStory.currentTags);
-            // Apply disruption effects to the next line
-            nextLine = scrambleEffectController.ApplyDisruption(nextLine);
 
-            // Start the coroutine to display the line
+            string nextLine = currentStory.Continue();
+            HandleTags(currentStory.currentTags);
+            nextLine = scrambleEffectController.ApplyDisruption(nextLine);
             displayLineCoroutine = StartCoroutine(DisplayLine(nextLine));
         }
         else
@@ -154,68 +155,88 @@ public class DialogueManager : MonoBehaviour
     }
 
     private IEnumerator DisplayLine(string line)
+{
+    // Remove <disruption> tags from the displayed text
+    string displayedLine = Regex.Replace(line, @"<disruption>|<\/disruption>", string.Empty);
+    dialogueText.text = displayedLine;
+
+    string unscrambledLine = scrambleEffectController.unscrambledText;
+    char[] unscrambledChars = unscrambledLine.ToCharArray();
+
+    int count = 0;
+    dialogueText.maxVisibleCharacters = 0;
+    continueIcon.SetActive(false);
+    HideChoices();
+
+    canContinueToNextLine = false;
+
+    bool isAddingRichTextTag = false;
+    bool audioPaused = false;
+    bool insideDisruptionTag = false;
+
+    foreach (char letter in line)
     {
-        dialogueText.text = line;
-        dialogueText.maxVisibleCharacters = 0;
-        continueIcon.SetActive(false);
-        HideChoices();
-
-        canContinueToNextLine = false;
-
-        bool isAddingRichTextTag = false;
-        bool isInsideDisruption = false;
-
-        for (int i = 0; i < line.Length; i++)
+        if (InputManager.GetInstance().GetSubmitPressed())
         {
-            char letter = line[i];
+            dialogueText.maxVisibleCharacters = displayedLine.Length;
+            break;
+        }
 
-            if (InputManager.GetInstance().GetSubmitPressed())
+        if (letter == '<')
+        {
+            isAddingRichTextTag = true;
+            string remainingLine = line.Substring(count);
+            if (remainingLine.StartsWith("<disruption>"))
             {
-                dialogueText.maxVisibleCharacters = line.Length;
-                break;
+                insideDisruptionTag = true;
             }
-
-            if (letter == '<')
+            else if (remainingLine.StartsWith("</disruption>"))
             {
-                isAddingRichTextTag = true;
-
-                // Check if we are entering a disruption tag
-                if (line.Substring(i).StartsWith("<disruption>"))
-                {
-                    isInsideDisruption = true;
-                }
-                else if (line.Substring(i).StartsWith("</disruption>"))
-                {
-                    isInsideDisruption = false;
-                }
-            }
-
-            if (isAddingRichTextTag)
-            {
-                if (letter == '>')
-                {
-                    isAddingRichTextTag = false;
-                }
-            }
-            else
-            {
-                // Only play dialogue sound if not inside a disruption
-                if (!isInsideDisruption)
-                {
-                    PlayDialogueSound(dialogueText.maxVisibleCharacters, dialogueText.text[dialogueText.maxVisibleCharacters]);
-                }
-                dialogueText.maxVisibleCharacters++;
-                yield return new WaitForSeconds(typingSpeed);
+                insideDisruptionTag = false;
             }
         }
 
-        dialogueText.maxVisibleCharacters = line.Length;
-        continueIcon.SetActive(true);
+        if (isAddingRichTextTag)
+        {
+            if (letter == '>')
+            {
+                isAddingRichTextTag = false;
+            }
+        }
+        else
+        {
+            // Determine if the audio should be paused based on being inside disruption tags
+            audioPaused = insideDisruptionTag || (letter != unscrambledChars[count]);
 
-        DisplayChoices();
+            // Play dialogue sound only if audio is not paused
+            if (!audioPaused)
+            {
+                PlayDialogueSound(dialogueText.maxVisibleCharacters, letter);
+            }
 
-        canContinueToNextLine = true;
+            if (count < displayedLine.Length && displayedLine[count] == letter)
+            {
+                dialogueText.maxVisibleCharacters++;
+            }
+
+            yield return new WaitForSeconds(typingSpeed);
+        }
+
+        count++;
     }
+
+    dialogueText.maxVisibleCharacters = displayedLine.Length;
+    continueIcon.SetActive(true);
+
+    DisplayChoices();
+
+    canContinueToNextLine = true;
+}
+
+
+
+
+
 
     private void HideChoices()
     {
@@ -234,6 +255,7 @@ public class DialogueManager : MonoBehaviour
             {
                 Debug.LogError("Tag could not be appropriately parsed: " + tag);
             }
+
             string tagKey = splitTag[0].Trim();
             string tagValue = splitTag[1].Trim();
 
@@ -248,7 +270,7 @@ public class DialogueManager : MonoBehaviour
                 case LAYOUT_TAG:
                     layoutAnimator.Play(tagValue);
                     break;
-                case AUDIO_TAG: 
+                case AUDIO_TAG:
                     SetCurrentAudioInfo(tagValue);
                     break;
                 default:
@@ -264,7 +286,8 @@ public class DialogueManager : MonoBehaviour
 
         if (currentChoices.Count > choices.Length)
         {
-            Debug.LogError("More choices were given than the UI can support. Number of choices given: " + currentChoices.Count);
+            Debug.LogError("More choices were given than the UI can support. Number of choices given: " +
+                           currentChoices.Count);
         }
 
         int index = 0;
@@ -308,87 +331,80 @@ public class DialogueManager : MonoBehaviour
         {
             Debug.LogWarning("Ink Variable was found to be null: " + variableName);
         }
+
         return variableValue;
     }
-    
-    private void InitializeAudioInfoDictionary() 
+
+    private void InitializeAudioInfoDictionary()
     {
         audioInfoDictionary = new Dictionary<string, DialogueAudioInfoSO>();
         audioInfoDictionary.Add(defaultAudioInfo.id, defaultAudioInfo);
-        foreach (DialogueAudioInfoSO audioInfo in audioInfos) 
+        foreach (DialogueAudioInfoSO audioInfo in audioInfos)
         {
             audioInfoDictionary.Add(audioInfo.id, audioInfo);
         }
     }
 
-    private void SetCurrentAudioInfo(string id) 
+    private void SetCurrentAudioInfo(string id)
     {
         DialogueAudioInfoSO audioInfo = null;
         audioInfoDictionary.TryGetValue(id, out audioInfo);
-        if (audioInfo != null) 
+        if (audioInfo != null)
         {
             this.currentAudioInfo = audioInfo;
         }
-        else 
+        else
         {
             Debug.LogWarning("Failed to find audio info for id: " + id);
         }
     }
-    
+
     private void PlayDialogueSound(int currentDisplayedCharacterCount, char currentCharacter)
     {
-        // set variables for the below based on our config
         AudioClip[] dialogueTypingSoundClips = currentAudioInfo.dialogueTypingSoundClips;
         int frequencyLevel = currentAudioInfo.frequencyLevel;
         float minPitch = currentAudioInfo.minPitch;
         float maxPitch = currentAudioInfo.maxPitch;
         bool stopAudioSource = currentAudioInfo.stopAudioSource;
 
-        // play the sound based on the config
         if (currentDisplayedCharacterCount % frequencyLevel == 0)
         {
-            if (stopAudioSource) 
+            if (stopAudioSource)
             {
                 audioSource.Stop();
             }
+
             AudioClip soundClip = null;
-            // create predictable audio from hashing
-            if (makePredictable) 
+            if (makePredictable)
             {
                 int hashCode = currentCharacter.GetHashCode();
-                // sound clip
                 int predictableIndex = hashCode % dialogueTypingSoundClips.Length;
                 soundClip = dialogueTypingSoundClips[predictableIndex];
-                // pitch
-                int minPitchInt = (int) (minPitch * 100);
-                int maxPitchInt = (int) (maxPitch * 100);
+                int minPitchInt = (int)(minPitch * 100);
+                int maxPitchInt = (int)(maxPitch * 100);
                 int pitchRangeInt = maxPitchInt - minPitchInt;
-                // cannot divide by 0, so if there is no range then skip the selection
-                if (pitchRangeInt != 0) 
+                if (pitchRangeInt != 0)
                 {
                     int predictablePitchInt = (hashCode % pitchRangeInt) + minPitchInt;
                     float predictablePitch = predictablePitchInt / 100f;
                     audioSource.pitch = predictablePitch;
                 }
-                else 
+                else
                 {
                     audioSource.pitch = minPitch;
                 }
             }
-            // otherwise, randomize the audio
-            else 
+            else
             {
-                // sound clip
                 int randomIndex = Random.Range(0, dialogueTypingSoundClips.Length);
                 soundClip = dialogueTypingSoundClips[randomIndex];
-                // pitch
                 audioSource.pitch = Random.Range(minPitch, maxPitch);
             }
-            
-            // play sound
+
             audioSource.PlayOneShot(soundClip);
         }
     }
+
 
     public void OnApplicationQuit()
     {
