@@ -42,7 +42,7 @@ public class DialogueManager : MonoBehaviour
     private DialogueVariableTracker dialogueVariables;
     
     [Header("Scramble Effect")]
-    [SerializeField] private ScrambleEffectController scrambleEffectController;
+    [SerializeField] private ADHDDisruptionSystem scrambleEffectController;
 
     private void Awake()
     {
