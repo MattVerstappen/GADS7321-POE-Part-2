@@ -1021,8 +1021,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27
-  m_fontSizeBase: 27
+  m_fontSize: 22
+  m_fontSizeBase: 22
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1844,7 +1844,17 @@ MonoBehaviour:
   - {fileID: 2013484148}
   - {fileID: 898004335}
   - {fileID: 1483483573}
-  scrambleEffectController: {fileID: 0}
+  scrambleEffectController: {fileID: 1804621849}
+  defaultAudioInfo: {fileID: 11400000, guid: 8a55bf03677bf6a4994bed6043fd03bb, type: 2}
+  audioInfos:
+  - {fileID: 11400000, guid: a8bb328890830284b910f8770777d2bb, type: 2}
+  - {fileID: 11400000, guid: 92afdbdd41141c14c80909b5eb68e59d, type: 2}
+  - {fileID: 11400000, guid: cafd91373050aca4c9a4c0937f886e8e, type: 2}
+  - {fileID: 11400000, guid: efbab583eb9660546879945633633739, type: 2}
+  - {fileID: 11400000, guid: 40155f59ebfe76d4dae3f973254e6ee0, type: 2}
+  - {fileID: 11400000, guid: 7ec5b480d4f4a904aa776d23b49f742b, type: 2}
+  - {fileID: 11400000, guid: af0e5bb7705944941a6d7cc9dc38de17, type: 2}
+  makePredictable: 0
 --- !u!4 &1239970033
 Transform:
   m_ObjectHideFlags: 0
@@ -3064,7 +3074,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   npcPortrait: {fileID: 1749450745}
-  currentScrambleAmount: 1
+  currentScrambleAmount: 0.2
 --- !u!1 &1836519800
 GameObject:
   m_ObjectHideFlags: 0

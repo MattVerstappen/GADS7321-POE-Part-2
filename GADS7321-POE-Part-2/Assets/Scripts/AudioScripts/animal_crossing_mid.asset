@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c658431853636446a2ec136bc0076e4, type: 3}
   m_Name: animal_crossing_mid
   m_EditorClassIdentifier: 
-  id: 
+  id: animal_crossing_mid
   dialogueTypingSoundClips: []
   frequencyLevel: 2
   minPitch: 0.5
