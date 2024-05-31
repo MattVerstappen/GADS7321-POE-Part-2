@@ -74,7 +74,7 @@ public class ADHDDisruptionSystem : MonoBehaviour
     public string ApplyDisruption(string text)
     {
         // Regex to find <disruption> tags and capture the text between them
-        Regex regex = new Regex(@"<disruption>(.*?)<\/disruption>");
+        Regex regex = new Regex(@"<disruption>(.*?)<\/disruption>", RegexOptions.Singleline);
         MatchCollection matches = regex.Matches(text);
         
         // Process each match found
@@ -84,8 +84,8 @@ public class ADHDDisruptionSystem : MonoBehaviour
             string disruptedText = match.Groups[1].Value;
             // Scramble the extracted text
             string scrambledText = ScrambleText(disruptedText);
-            // Replace the original text with scrambled text within the <disruption> tags
-            text = text.Replace(match.Value, scrambledText);
+            // Replace the original text within the <disruption> tags with scrambled text
+            text = text.Replace(match.Groups[1].Value, scrambledText);
         }
 
         return text;

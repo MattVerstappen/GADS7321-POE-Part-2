@@ -2,7 +2,7 @@ Hello there! #speaker:Dr. Green #portrait:dr_green_neutral #layout:left #audio:a
 -> main
 
 === main ===
-How are you feeling today?
+How <disruption>are you</disruption> feeling today?
 + [Happy]
     <disruption>That makes me feel <color=\#F8FF30>happy</color> as well!</disruption> #portrait:dr_green_happy#audio:animal_crossing_low
 + [Sad]

@@ -153,22 +153,6 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    /*private string ApplyDisruptionEffects(string text)
-    {
-        Regex regex = new Regex(@"<disruption>(.*?)<\/disruption>");
-        MatchCollection matches = regex.Matches(text);
-        
-
-        foreach (Match match in matches)
-        {
-            string disruptedText = match.Groups[1].Value;
-            string scrambledText = ADHDDisruptionSystem.ApplyDisruption(disruptedText);
-            text = text.Replace(match.Value, scrambledText);
-        }
-
-        return text;
-    }*/
-
     private IEnumerator DisplayLine(string line)
     {
         dialogueText.text = line;
@@ -179,18 +163,35 @@ public class DialogueManager : MonoBehaviour
         canContinueToNextLine = false;
 
         bool isAddingRichTextTag = false;
+        bool isInsideDisruption = false;
 
-        foreach (char letter in line.ToCharArray())
+        for (int i = 0; i < line.Length; i++)
         {
+            char letter = line[i];
+
             if (InputManager.GetInstance().GetSubmitPressed())
             {
                 dialogueText.maxVisibleCharacters = line.Length;
                 break;
             }
 
-            if (letter == '<' || isAddingRichTextTag)
+            if (letter == '<')
             {
                 isAddingRichTextTag = true;
+
+                // Check if we are entering a disruption tag
+                if (line.Substring(i).StartsWith("<disruption>"))
+                {
+                    isInsideDisruption = true;
+                }
+                else if (line.Substring(i).StartsWith("</disruption>"))
+                {
+                    isInsideDisruption = false;
+                }
+            }
+
+            if (isAddingRichTextTag)
+            {
                 if (letter == '>')
                 {
                     isAddingRichTextTag = false;
@@ -198,7 +199,11 @@ public class DialogueManager : MonoBehaviour
             }
             else
             {
-                PlayDialogueSound(dialogueText.maxVisibleCharacters, dialogueText.text[dialogueText.maxVisibleCharacters]);
+                // Only play dialogue sound if not inside a disruption
+                if (!isInsideDisruption)
+                {
+                    PlayDialogueSound(dialogueText.maxVisibleCharacters, dialogueText.text[dialogueText.maxVisibleCharacters]);
+                }
                 dialogueText.maxVisibleCharacters++;
                 yield return new WaitForSeconds(typingSpeed);
             }
