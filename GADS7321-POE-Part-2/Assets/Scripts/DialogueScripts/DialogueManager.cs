@@ -137,13 +137,14 @@ public class DialogueManager : MonoBehaviour
             {
                 StopCoroutine(displayLineCoroutine);
             }
+            // Get the next line from the story
             string nextLine = currentStory.Continue();
+            // Handle tags for the current line
             HandleTags(currentStory.currentTags);
-            nextLine = ApplyDisruptionEffects(nextLine);
+            // Apply disruption effects to the next line
+            nextLine = scrambleEffectController.ApplyDisruption(nextLine);
 
-            // Debug log to print the text that will be displayed
-            Debug.Log("Displaying text: " + nextLine);
-
+            // Start the coroutine to display the line
             displayLineCoroutine = StartCoroutine(DisplayLine(nextLine));
         }
         else
@@ -152,10 +153,11 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-    private string ApplyDisruptionEffects(string text)
+    /*private string ApplyDisruptionEffects(string text)
     {
-        var regex = new Regex(@"<disruption>(.*?)<\/disruption>");
-        var matches = regex.Matches(text);
+        Regex regex = new Regex(@"<disruption>(.*?)<\/disruption>");
+        MatchCollection matches = regex.Matches(text);
+        
 
         foreach (Match match in matches)
         {
@@ -165,7 +167,7 @@ public class DialogueManager : MonoBehaviour
         }
 
         return text;
-    }
+    }*/
 
     private IEnumerator DisplayLine(string line)
     {
@@ -202,7 +204,9 @@ public class DialogueManager : MonoBehaviour
             }
         }
 
+        dialogueText.maxVisibleCharacters = line.Length;
         continueIcon.SetActive(true);
+
         DisplayChoices();
 
         canContinueToNextLine = true;
