@@ -1854,7 +1854,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 40155f59ebfe76d4dae3f973254e6ee0, type: 2}
   - {fileID: 11400000, guid: 7ec5b480d4f4a904aa776d23b49f742b, type: 2}
   - {fileID: 11400000, guid: af0e5bb7705944941a6d7cc9dc38de17, type: 2}
-  makePredictable: 0
+  makePredictable: 1
 --- !u!4 &1239970033
 Transform:
   m_ObjectHideFlags: 0

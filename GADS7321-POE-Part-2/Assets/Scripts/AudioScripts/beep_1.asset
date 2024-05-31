@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: beep_1
   m_EditorClassIdentifier: 
   id: beep_1
-  dialogueTypingSoundClips: []
+  dialogueTypingSoundClips:
+  - {fileID: 8300000, guid: 3ace091a0b62ad848b44aa4a92f7ded7, type: 3}
   frequencyLevel: 2
   minPitch: 0.5
   maxPitch: 3

@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "DialogueAudioInfo", menuName = "ScriptableObjects/DialogueAudioInfoSO", order = 1)]
@@ -14,4 +12,9 @@ public class DialogueAudioInfoSO : ScriptableObject
     [Range(-3, 3)]
     public float maxPitch = 3f;
     public bool stopAudioSource;
+
+    public void LogFrequencyLevel()
+    {
+        Debug.Log("Frequency level: " + frequencyLevel);
+    }
 }
