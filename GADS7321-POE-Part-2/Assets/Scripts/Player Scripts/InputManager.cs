@@ -28,10 +28,6 @@ public class InputManager : MonoBehaviour
         // Register callback for the "submit" action
         controls.game.submit.performed += SubmitPressed;
         controls.game.submit.canceled += SubmitPressed;
-
-
-        Debug.Log("InputManager instance set.");
-
         // Enable input controls
         controls.Enable();
     }

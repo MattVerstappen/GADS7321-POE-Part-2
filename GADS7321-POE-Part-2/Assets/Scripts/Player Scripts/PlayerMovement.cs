@@ -42,7 +42,6 @@ public class PlayerMovement : MonoBehaviour
     {
         body = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
-        Debug.Log("Components Initialized");
     }
 
     // Handles player movement
@@ -84,8 +83,6 @@ public class PlayerMovement : MonoBehaviour
     {
         Vector2 position = (Vector2)transform.position + groundCheckOffset;
         grounded = Physics2D.OverlapCircle(position, groundCheckRadius, groundLayer);
-        Debug.Log("Player grounded state: " + grounded);
-
         // Trigger animation based on grounded state
         anim.SetBool("grounded", grounded);
     }
@@ -96,14 +93,8 @@ public class PlayerMovement : MonoBehaviour
         InputManager inputManager = InputManager.GetInstance();
         if (inputManager != null && inputManager.GetInteractPressed() && currentDialogueTrigger != null)
         {
-            Debug.Log("Interact button pressed while in range.");
             // Invoke the TriggerDialogue method of the DialogueTrigger class
             currentDialogueTrigger.Invoke("TriggerDialogue", 0f);
-        }
-        
-        if (inputManager != null && inputManager.GetSubmitPressed())
-        {
-            Debug.Log("Submit button pressed in PlayerMovement.");
         }
     }
 

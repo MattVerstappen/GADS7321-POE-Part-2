@@ -9,12 +9,16 @@ public class DialogueTrigger : MonoBehaviour
     [SerializeField] private TextAsset inkJSON;
 
     private bool playerInRange;
+    
+    [SerializeField] private DialogueManager dialogueManager;
 
     private void Awake()
     {
         playerInRange = false;
         visualCue.SetActive(false);
     }
+    
+    
 
     private void Update()
     {

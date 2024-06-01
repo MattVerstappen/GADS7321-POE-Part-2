@@ -11,6 +11,7 @@ public class ADHDDisruptionSystem : MonoBehaviour
     private Material scrambleMaterial;
     private Coroutine scrambleCoroutine;
     [SerializeField] private float currentScrambleAmount = 1f; 
+    [SerializeField] private PlayerSkills playerSkills;
 
     void Start()
     {
@@ -45,6 +46,15 @@ public class ADHDDisruptionSystem : MonoBehaviour
 
     private void UpdateScrambleAmount()
     {
+        // Check if the player has learned social skills
+        if (playerSkills.hasLearnedSocialSkills)
+        {
+            currentScrambleAmount = 0f; // If learned, set visual disruption to 0
+        }
+        else
+        {
+            currentScrambleAmount = 1f; // If not learned, set visual disruption to default (1f)
+        }
         scrambleMaterial.SetFloat("_ScrambleAmount", currentScrambleAmount);
     }
 
@@ -80,12 +90,16 @@ public class ADHDDisruptionSystem : MonoBehaviour
         // Process each match found
         foreach (Match match in matches)
         {
-            // Extract the text between <disruption> tags
-            string disruptedText = match.Groups[1].Value;
-            // Scramble the extracted text
-            string scrambledText = ScrambleText(disruptedText);
-            // Replace the original text within the <disruption> tags with scrambled text
-            text = text.Replace(match.Groups[1].Value, scrambledText);
+            if (!playerSkills.hasLearnedSelfAwareness)
+            {
+                // Extract the text between <disruption> tags
+                string disruptedText = match.Groups[1].Value;
+                // Scramble the extracted text
+                string scrambledText = ScrambleText(disruptedText);
+                // Replace the original text within the <disruption> tags with scrambled text
+                text = text.Replace(match.Groups[1].Value, scrambledText);
+            }
+            
         }
 
         return text;

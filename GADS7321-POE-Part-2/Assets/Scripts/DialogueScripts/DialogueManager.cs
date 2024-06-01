@@ -53,6 +53,8 @@ public class DialogueManager : MonoBehaviour
     private Dictionary<string, DialogueAudioInfoSO> audioInfoDictionary;
     private AudioSource audioSource;
     private DialogueAudioInfoSO originalAudioInfo;
+    
+    [SerializeField] private PlayerSkills playerSkills;
 
     private void Awake()
     {
@@ -103,6 +105,7 @@ public class DialogueManager : MonoBehaviour
             ContinueStory();
         }
     }
+    
 
     public void EnterDialogueMode(TextAsset inkJSON)
     {
@@ -195,6 +198,13 @@ public class DialogueManager : MonoBehaviour
             }
             else
             {
+                if(playerSkills.hasLearnedMindfulness)
+                {
+                    // Always play the dialogue sound if mindfulness is learned
+                    PlayDialogueSound(dialogueText.maxVisibleCharacters, letter);
+                }
+                else
+                {
                 // Check if we're entering the flagged segment
                 if (playAudio && currentAudioInfo != originalAudioProfile)
                 {
@@ -208,8 +218,9 @@ public class DialogueManager : MonoBehaviour
 
                 // Play audio based on the current audio profile
                 PlayDialogueSound(dialogueText.maxVisibleCharacters, letter);
+            }
 
-                dialogueText.maxVisibleCharacters++;
+            dialogueText.maxVisibleCharacters++;
                 yield return new WaitForSeconds(typingSpeed);
             }
         }
