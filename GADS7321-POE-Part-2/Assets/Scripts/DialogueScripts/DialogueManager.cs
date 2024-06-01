@@ -52,6 +52,7 @@ public class DialogueManager : MonoBehaviour
     private DialogueAudioInfoSO currentAudioInfo;
     private Dictionary<string, DialogueAudioInfoSO> audioInfoDictionary;
     private AudioSource audioSource;
+    private DialogueAudioInfoSO originalAudioInfo;
 
     private void Awake()
     {
@@ -87,6 +88,7 @@ public class DialogueManager : MonoBehaviour
             index++;
         }
         InitializeAudioInfoDictionary();
+        StoreOriginalAudioInfo();
     }
 
     private void Update()
@@ -154,59 +156,75 @@ public class DialogueManager : MonoBehaviour
     }
 
     private IEnumerator DisplayLine(string line)
+{
+    dialogueText.text = "";
+    dialogueText.maxVisibleCharacters = 0;
+    continueIcon.SetActive(false);
+    HideChoices();
+
+    canContinueToNextLine = false;
+    bool isAddingRichTextTag = false;
+    DialogueAudioInfoSO originalAudioProfile = currentAudioInfo;
+
+    var segments = ParseDialogueString(line);
+
+    foreach (var segment in segments)
     {
-        dialogueText.text = "";
-        dialogueText.maxVisibleCharacters = 0;
-        continueIcon.SetActive(false);
-        HideChoices();
+        string segmentText = segment.text;
+        bool playAudio = segment.playAudio;
 
-        canContinueToNextLine = false;
-        bool isAddingRichTextTag = false;
+        dialogueText.text += segmentText;
 
-        var segments = ParseDialogueString(line);
-
-        foreach (var segment in segments)
+        for (int i = 0; i < segmentText.Length; i++)
         {
-            string segmentText = segment.text;
-            bool playAudio = segment.playAudio;
+            char letter = segmentText[i];
 
-            dialogueText.text += segmentText;
-
-            for (int i = 0; i < segmentText.Length; i++)
+            if (InputManager.GetInstance().GetSubmitPressed())
             {
-                char letter = segmentText[i];
+                dialogueText.maxVisibleCharacters = dialogueText.text.Length;
+                break;
+            }
 
-                if (InputManager.GetInstance().GetSubmitPressed())
+            if (letter == '<' || isAddingRichTextTag)
+            {
+                isAddingRichTextTag = true;
+                if (letter == '>')
                 {
-                    dialogueText.maxVisibleCharacters = dialogueText.text.Length;
-                    break;
-                }
-
-                if (letter == '<' || isAddingRichTextTag)
-                {
-                    isAddingRichTextTag = true;
-                    if (letter == '>')
-                    {
-                        isAddingRichTextTag = false;
-                    }
-                }
-                else
-                {
-                    if (playAudio)
-                    {
-                        PlayDialogueSound(dialogueText.maxVisibleCharacters, letter);
-                    }
-                    dialogueText.maxVisibleCharacters++;
-                    yield return new WaitForSeconds(typingSpeed);
+                    isAddingRichTextTag = false;
                 }
             }
-        }
+            else
+            {
+                // Check if we're entering the flagged segment
+                if (playAudio && currentAudioInfo != originalAudioProfile)
+                {
+                    currentAudioInfo = originalAudioProfile;
+                }
+                else if (!playAudio && currentAudioInfo == originalAudioProfile)
+                {
+                    // Swap audio profile
+                    SetCurrentAudioInfo(defaultAudioInfo.id);
+                }
 
-        dialogueText.maxVisibleCharacters = dialogueText.text.Length;
-        continueIcon.SetActive(true);
-        DisplayChoices();
-        canContinueToNextLine = true;
+                // Play audio based on the current audio profile
+                PlayDialogueSound(dialogueText.maxVisibleCharacters, letter);
+
+                dialogueText.maxVisibleCharacters++;
+                yield return new WaitForSeconds(typingSpeed);
+            }
+        }
     }
+
+    dialogueText.maxVisibleCharacters = dialogueText.text.Length;
+    continueIcon.SetActive(true);
+    DisplayChoices();
+    canContinueToNextLine = true;
+}
+
+
+
+
+
 
 
     private void HideChoices()
@@ -329,33 +347,28 @@ public class DialogueManager : MonoBehaviour
     
     private void PlayDialogueSound(int currentDisplayedCharacterCount, char currentCharacter)
     {
-        // set variables for the below based on our config
+        // Set variables for the below based on our config
         AudioClip[] dialogueTypingSoundClips = currentAudioInfo.dialogueTypingSoundClips;
         int frequencyLevel = currentAudioInfo.frequencyLevel;
         float minPitch = currentAudioInfo.minPitch;
         float maxPitch = currentAudioInfo.maxPitch;
-        bool stopAudioSource = currentAudioInfo.stopAudioSource;
 
-        // play the sound based on the config
+        // Play the sound based on the config
         if (currentDisplayedCharacterCount % frequencyLevel == 0)
         {
-            if (stopAudioSource) 
-            {
-                audioSource.Stop();
-            }
             AudioClip soundClip = null;
-            // create predictable audio from hashing
+            // Create predictable audio from hashing
             if (makePredictable) 
             {
                 int hashCode = currentCharacter.GetHashCode();
-                // sound clip
+                // Sound clip
                 int predictableIndex = hashCode % dialogueTypingSoundClips.Length;
                 soundClip = dialogueTypingSoundClips[predictableIndex];
-                // pitch
+                // Pitch
                 int minPitchInt = (int) (minPitch * 100);
                 int maxPitchInt = (int) (maxPitch * 100);
                 int pitchRangeInt = maxPitchInt - minPitchInt;
-                // cannot divide by 0, so if there is no range then skip the selection
+                // Cannot divide by 0, so if there is no range then skip the selection
                 if (pitchRangeInt != 0) 
                 {
                     int predictablePitchInt = (hashCode % pitchRangeInt) + minPitchInt;
@@ -367,20 +380,21 @@ public class DialogueManager : MonoBehaviour
                     audioSource.pitch = minPitch;
                 }
             }
-            // otherwise, randomize the audio
+            // Otherwise, randomize the audio
             else 
             {
-                // sound clip
+                // Sound clip
                 int randomIndex = Random.Range(0, dialogueTypingSoundClips.Length);
                 soundClip = dialogueTypingSoundClips[randomIndex];
-                // pitch
+                // Pitch
                 audioSource.pitch = Random.Range(minPitch, maxPitch);
             }
-            
-            // play sound
+        
+            // Play sound
             audioSource.PlayOneShot(soundClip);
         }
     }
+
 
     private List<(string text, bool playAudio)> ParseDialogueString(string line)
     {
@@ -443,6 +457,29 @@ public class DialogueManager : MonoBehaviour
         return segments;
     }
 
+    private DialogueAudioInfoSO SelectRandomAudioProfile()
+    {
+        if (audioInfos.Length > 0)
+        {
+            int randomIndex = Random.Range(0, audioInfos.Length);
+            return audioInfos[randomIndex];
+        }
+        else
+        {
+            Debug.LogWarning("No audio profiles available.");
+            return null;
+        }
+    }
+    
+    private void StoreOriginalAudioInfo()
+    {
+        originalAudioInfo = currentAudioInfo;
+    }
+
+    private void RestoreOriginalAudioInfo()
+    {
+        currentAudioInfo = originalAudioInfo;
+    }
     public void OnApplicationQuit()
     {
         dialogueVariables.SaveVariables();
