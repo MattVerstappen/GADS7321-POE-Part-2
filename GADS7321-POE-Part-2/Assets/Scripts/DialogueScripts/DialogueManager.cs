@@ -155,67 +155,59 @@ public class DialogueManager : MonoBehaviour
 
     private IEnumerator DisplayLine(string line)
     {
-        dialogueText.text = line;
+        dialogueText.text = "";
         dialogueText.maxVisibleCharacters = 0;
         continueIcon.SetActive(false);
         HideChoices();
 
         canContinueToNextLine = false;
-
         bool isAddingRichTextTag = false;
-        bool isInsideDisruption = false;
 
-        for (int i = 0; i < line.Length; i++)
+        var segments = ParseDialogueString(line);
+
+        foreach (var segment in segments)
         {
-            char letter = line[i];
+            string segmentText = segment.text;
+            bool playAudio = segment.playAudio;
 
-            if (InputManager.GetInstance().GetSubmitPressed())
-            {
-                dialogueText.maxVisibleCharacters = line.Length;
-                break;
-            }
+            dialogueText.text += segmentText;
 
-            if (letter == '<')
+            for (int i = 0; i < segmentText.Length; i++)
             {
-                isAddingRichTextTag = true;
+                char letter = segmentText[i];
 
-                // Check if we are entering a disruption tag
-                if (line.Substring(i).StartsWith("<disruption>"))
+                if (InputManager.GetInstance().GetSubmitPressed())
                 {
-                    isInsideDisruption = true;
+                    dialogueText.maxVisibleCharacters = dialogueText.text.Length;
+                    break;
                 }
-                else if (line.Substring(i).StartsWith("</disruption>"))
-                {
-                    isInsideDisruption = false;
-                }
-            }
 
-            if (isAddingRichTextTag)
-            {
-                if (letter == '>')
+                if (letter == '<' || isAddingRichTextTag)
                 {
-                    isAddingRichTextTag = false;
+                    isAddingRichTextTag = true;
+                    if (letter == '>')
+                    {
+                        isAddingRichTextTag = false;
+                    }
                 }
-            }
-            else
-            {
-                // Only play dialogue sound if not inside a disruption
-                if (!isInsideDisruption)
+                else
                 {
-                    PlayDialogueSound(dialogueText.maxVisibleCharacters, dialogueText.text[dialogueText.maxVisibleCharacters]);
+                    if (playAudio)
+                    {
+                        PlayDialogueSound(dialogueText.maxVisibleCharacters, letter);
+                    }
+                    dialogueText.maxVisibleCharacters++;
+                    yield return new WaitForSeconds(typingSpeed);
                 }
-                dialogueText.maxVisibleCharacters++;
-                yield return new WaitForSeconds(typingSpeed);
             }
         }
 
-        dialogueText.maxVisibleCharacters = line.Length;
+        dialogueText.maxVisibleCharacters = dialogueText.text.Length;
         continueIcon.SetActive(true);
-
         DisplayChoices();
-
         canContinueToNextLine = true;
     }
+
 
     private void HideChoices()
     {
@@ -388,6 +380,67 @@ public class DialogueManager : MonoBehaviour
             // play sound
             audioSource.PlayOneShot(soundClip);
         }
+    }
+
+    private List<(string text, bool playAudio)> ParseDialogueString(string line)
+    {
+        List<(string text, bool playAudio)> segments = new List<(string text, bool playAudio)>();
+
+        bool isInCustomTag = false;
+        bool isAddingRichTextTag = false;
+        int currentIndex = 0;
+        int segmentStartIndex = 0;
+
+        while (currentIndex < line.Length)
+        {
+            if (line.Substring(currentIndex).StartsWith("<disruption>"))
+            {
+                if (currentIndex > segmentStartIndex && !isInCustomTag)
+                {
+                    segments.Add((line.Substring(segmentStartIndex, currentIndex - segmentStartIndex), true));
+                }
+
+                isInCustomTag = true;
+                currentIndex += "<disruption>".Length;
+                segmentStartIndex = currentIndex;
+            }
+            else if (line.Substring(currentIndex).StartsWith("</disruption>"))
+            {
+                if (currentIndex > segmentStartIndex)
+                {
+                    segments.Add((line.Substring(segmentStartIndex, currentIndex - segmentStartIndex), false));
+                }
+
+                isInCustomTag = false;
+                currentIndex += "</disruption>".Length;
+                segmentStartIndex = currentIndex;
+            }
+            else if (line[currentIndex] == '<' || isAddingRichTextTag)
+            {
+                if (line[currentIndex] == '<')
+                {
+                    isAddingRichTextTag = true;
+                }
+
+                if (line[currentIndex] == '>')
+                {
+                    isAddingRichTextTag = false;
+                }
+
+                currentIndex++;
+            }
+            else
+            {
+                currentIndex++;
+            }
+        }
+
+        if (currentIndex > segmentStartIndex)
+        {
+            segments.Add((line.Substring(segmentStartIndex, currentIndex - segmentStartIndex), !isInCustomTag));
+        }
+
+        return segments;
     }
 
     public void OnApplicationQuit()
