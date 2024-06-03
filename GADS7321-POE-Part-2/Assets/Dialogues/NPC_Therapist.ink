@@ -5,14 +5,14 @@ INCLUDE globalVariableTracker.ink
 EXTERNAL SetSkill(skillName, value)
 
 === main ===
-#speaker: Therapist #portrait:therapist_neutral #layout:right #audio:animal_crossing_low
+#speaker: Therapist #portrait:therapist_happy #layout:right #audio:animal_crossing_low
 Hello there! Step into my office so we can speak.
 
 * [I think I may have ADHD] -> firstSession
 * [I have ADHD, I need skills] -> selfAwareness
 
 === firstSession ===
-#speaker: Therapist #portrait:therapist_neutral #layout:right #audio:animal_crossing_low
+#speaker: Therapist #portrait:therapist_happy #layout:right #audio:animal_crossing_low
 Today, we'll work on understanding ADHD and building your skills to manage it. 
 Let's start by understanding what ADHD is.
 ADHD stands for Attention Deficit Hyperactivity Disorder. 
@@ -242,7 +242,7 @@ Come back when you're ready to learn more.
 -> END
 
 === subsequentSession ===
-#speaker: Therapist #portrait:therapist_neutral #layout:right #audio:animal_crossing_low
+#speaker: Therapist #portrait:therapist_happy #layout:right #audio:animal_crossing_low
 Welcome back to your therapy session.
 Today, we can work on building more skills to manage ADHD.
 What do you want to focus on?
