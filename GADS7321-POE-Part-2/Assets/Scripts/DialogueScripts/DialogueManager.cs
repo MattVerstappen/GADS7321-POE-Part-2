@@ -114,6 +114,7 @@ public class DialogueManager : MonoBehaviour
         dialoguePanel.SetActive(true);
 
         dialogueVariables.StartListening(currentStory);
+        BindExternalFunctions(currentStory);
 
         displayNameText.text = "???";
         portraitAnimator.Play("default");
@@ -121,6 +122,52 @@ public class DialogueManager : MonoBehaviour
 
         ContinueStory();
     }
+    private void BindExternalFunctions(Story story)
+    {
+        story.BindExternalFunction("SetSkill", (string skillName, bool value) =>
+        {
+            switch (skillName)
+            {
+                case "hasLearnedSocialSkills":
+                    playerSkills.hasLearnedSocialSkills = value;
+                    break;
+                case "hasLearnedMindfulness":
+                    playerSkills.hasLearnedMindfulness = value;
+                    break;
+                case "hasLearnedSelfAwareness":
+                    playerSkills.hasLearnedSelfAwareness = value;
+                    break;
+                case "hasLearnedStressManagement":
+                    playerSkills.hasLearnedStressManagement = value;
+                    break;
+            }
+        });
+    }
+
+    
+    private void UpdateSkill(string skillName, bool status)
+    {
+        Debug.Log($"Updating skill: {skillName} to {status}");
+        switch (skillName)
+        {
+            case "SocialSkills":
+                playerSkills.hasLearnedSocialSkills = status;
+                break;
+            case "Mindfulness":
+                playerSkills.hasLearnedMindfulness = status;
+                break;
+            case "SelfAwareness":
+                playerSkills.hasLearnedSelfAwareness = status;
+                break;
+            case "StressManagement":
+                playerSkills.hasLearnedStressManagement = status;
+                break;
+            default:
+                Debug.LogWarning($"Unknown skill name: {skillName}");
+                break;
+        }
+    }
+
 
     private IEnumerator ExitDialogueMode()
     {
