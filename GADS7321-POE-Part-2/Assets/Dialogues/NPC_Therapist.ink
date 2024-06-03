@@ -303,6 +303,5 @@ Do you want to learn about another skill?
 === function checkAllSkillsLearned ===
 {hasLearnedSocialSkills == true and hasLearnedMindfulness == true and hasLearnedSelfAwareness == true and hasLearnedStressManagement == true:
     ~ allSkillsLearned = true
-    // Debugging statement
-    {allSkillsLearned == true: "allSkillsLearned set to true"}
+    
 }

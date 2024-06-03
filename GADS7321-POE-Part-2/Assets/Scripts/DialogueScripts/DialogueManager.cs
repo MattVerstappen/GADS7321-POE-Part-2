@@ -541,5 +541,6 @@ public class DialogueManager : MonoBehaviour
     public void OnApplicationQuit()
     {
         dialogueVariables.SaveVariables();
+        playerSkills.ResetSkills();
     }
 }

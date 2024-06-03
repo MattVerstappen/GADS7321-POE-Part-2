@@ -7,4 +7,12 @@ public class PlayerSkills : ScriptableObject
     [SerializeField]public bool hasLearnedMindfulness = false;
     [SerializeField]public bool hasLearnedSelfAwareness = false;
     [SerializeField]public bool hasLearnedStressManagement = false;
+    
+    public void ResetSkills()
+    {
+        hasLearnedSocialSkills = false;
+        hasLearnedMindfulness = false;
+        hasLearnedSelfAwareness = false;
+        hasLearnedStressManagement = false;
+    }
 }

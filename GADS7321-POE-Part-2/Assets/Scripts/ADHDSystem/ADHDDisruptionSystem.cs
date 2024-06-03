@@ -10,7 +10,7 @@ public class ADHDDisruptionSystem : MonoBehaviour
     [SerializeField] private Image npcPortrait;
     private Material scrambleMaterial;
     private Coroutine scrambleCoroutine;
-    [SerializeField] private float currentScrambleAmount = 1f; 
+    [SerializeField] private float currentScrambleAmount = 0.02f; 
     [SerializeField] private PlayerSkills playerSkills;
 
     void Start()
@@ -51,10 +51,10 @@ public class ADHDDisruptionSystem : MonoBehaviour
         {
             currentScrambleAmount = 0f; // If learned, set visual disruption to 0
         }
-        else
+        /*else
         {
             currentScrambleAmount = 1f; // If not learned, set visual disruption to default (1f)
-        }
+        }*/
         scrambleMaterial.SetFloat("_ScrambleAmount", currentScrambleAmount);
     }
 
