@@ -102,7 +102,6 @@
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF SSD.shader" />
     <None Include="Assets\Dialogues\NPC_Therapist.json" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Surface-Mobile.shader" />
-    <None Include="Assets\Dialogues\ResponseDialogueTexter.json" />
     <None Include="Assets\Dragon Warrior Files\Read Me.txt" />
     <None Include="Assets\Shaders\ADHDScramble.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Surface.shader" />
@@ -116,8 +115,10 @@
     <None Include="Assets\Dialogues\global_loader.json" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Surface.cginc" />
     <None Include="Assets\TextMesh Pro\Resources\LineBreaking Following Characters.txt" />
+    <None Include="Assets\Dialogues\NPC_Mr_Blue.json" />
     <None Include="Assets\Ink\Demos\Basic Demo\Ink\story.json" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Masking.shader" />
+    <None Include="Assets\Dialogues\NPC_Alex.json" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF Overlay.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap-Mobile.shader" />
     <None Include="Assets\TextMesh Pro\Fonts\LiberationSans - OFL.txt" />
@@ -753,6 +754,9 @@
     <Reference Include="Unity.RenderPipelines.Core.Runtime">
       <HintPath>C:\Users\info\OneDrive\Documents\Acedemics\2024\GADES\GADS7321-POE-Part-2\GADS7321-POE-Part-2\Library\ScriptAssemblies\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
     </Reference>
+    <Reference Include="com.unity.cinemachine.editor">
+      <HintPath>C:\Users\info\OneDrive\Documents\Acedemics\2024\GADES\GADS7321-POE-Part-2\GADS7321-POE-Part-2\Library\ScriptAssemblies\com.unity.cinemachine.editor.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.Burst.Editor">
       <HintPath>C:\Users\info\OneDrive\Documents\Acedemics\2024\GADES\GADS7321-POE-Part-2\GADS7321-POE-Part-2\Library\ScriptAssemblies\Unity.Burst.Editor.dll</HintPath>
     </Reference>
@@ -908,6 +912,9 @@
     </Reference>
     <Reference Include="Unity.VisualScripting.State">
       <HintPath>C:\Users\info\OneDrive\Documents\Acedemics\2024\GADES\GADS7321-POE-Part-2\GADS7321-POE-Part-2\Library\ScriptAssemblies\Unity.VisualScripting.State.dll</HintPath>
+    </Reference>
+    <Reference Include="Cinemachine">
+      <HintPath>C:\Users\info\OneDrive\Documents\Acedemics\2024\GADES\GADS7321-POE-Part-2\GADS7321-POE-Part-2\Library\ScriptAssemblies\Cinemachine.dll</HintPath>
     </Reference>
     <Reference Include="Unity.2D.SpriteShape.Editor">
       <HintPath>C:\Users\info\OneDrive\Documents\Acedemics\2024\GADES\GADS7321-POE-Part-2\GADS7321-POE-Part-2\Library\ScriptAssemblies\Unity.2D.SpriteShape.Editor.dll</HintPath>

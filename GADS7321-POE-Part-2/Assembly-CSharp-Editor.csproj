@@ -724,6 +724,9 @@
     <Reference Include="Unity.RenderPipelines.Core.Runtime">
       <HintPath>C:\Users\info\OneDrive\Documents\Acedemics\2024\GADES\GADS7321-POE-Part-2\GADS7321-POE-Part-2\Library\ScriptAssemblies\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
     </Reference>
+    <Reference Include="com.unity.cinemachine.editor">
+      <HintPath>C:\Users\info\OneDrive\Documents\Acedemics\2024\GADES\GADS7321-POE-Part-2\GADS7321-POE-Part-2\Library\ScriptAssemblies\com.unity.cinemachine.editor.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.Burst.Editor">
       <HintPath>C:\Users\info\OneDrive\Documents\Acedemics\2024\GADES\GADS7321-POE-Part-2\GADS7321-POE-Part-2\Library\ScriptAssemblies\Unity.Burst.Editor.dll</HintPath>
     </Reference>
@@ -879,6 +882,9 @@
     </Reference>
     <Reference Include="Unity.VisualScripting.State">
       <HintPath>C:\Users\info\OneDrive\Documents\Acedemics\2024\GADES\GADS7321-POE-Part-2\GADS7321-POE-Part-2\Library\ScriptAssemblies\Unity.VisualScripting.State.dll</HintPath>
+    </Reference>
+    <Reference Include="Cinemachine">
+      <HintPath>C:\Users\info\OneDrive\Documents\Acedemics\2024\GADES\GADS7321-POE-Part-2\GADS7321-POE-Part-2\Library\ScriptAssemblies\Cinemachine.dll</HintPath>
     </Reference>
     <Reference Include="Unity.2D.SpriteShape.Editor">
       <HintPath>C:\Users\info\OneDrive\Documents\Acedemics\2024\GADES\GADS7321-POE-Part-2\GADS7321-POE-Part-2\Library\ScriptAssemblies\Unity.2D.SpriteShape.Editor.dll</HintPath>
